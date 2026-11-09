@@ -1,0 +1,38 @@
+# Ignore build outputs
+bin/
+obj/
+*.dll
+*.exe
+*.pdb
+
+# Ignore test results
+TestResults/
+*.trx
+*.coverage
+
+# Ignore user-specific files
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Ignore Playwright artifacts
+playwright/
+screenshots/
+videos/
+
+# Ignore IDE files
+.vs/
+.vscode/
+.idea/
+
+# Ignore NuGet packages
+*.nupkg
+packages/
+
+# Ignore logs
+*.log
+
+# Ignore OS files
+.DS_Store
+Thumbs.db
