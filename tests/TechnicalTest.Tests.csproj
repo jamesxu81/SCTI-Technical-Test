@@ -14,10 +14,11 @@
     <PackageReference Include="NUnit3TestAdapter" Version="4.5.0" />
     <PackageReference Include="NUnit.Analyzers" Version="4.0.1" />
     <PackageReference Include="coverlet.collector" Version="6.0.0" />
-    <PackageReference Include="Microsoft.Playwright" Version="1.41.0" />
-    <PackageReference Include="Reqnroll" Version="2.0.3" />
-    <PackageReference Include="Reqnroll.NUnit" Version="2.0.3" />
-    <PackageReference Include="Reqnroll.Tools.MsBuild.Generation" Version="2.0.3" />
+    <PackageReference Include="Microsoft.Playwright" Version="1.64.1" />
+    <PackageReference Include="Reqnroll" Version="2.4.1" />
+    <PackageReference Include="Reqnroll.NUnit" Version="2.4.1" />
+    <PackageReference Include="Reqnroll.Tools.MsBuild.Generation" Version="2.4.1" />
+    <PackageReference Include="NUnitRetry.ReqnrollPlugin" Version="2.0.4" />
     <PackageReference Include="Moq" Version="4.20.70" />
     <PackageReference Include="FluentAssertions" Version="6.12.0" />
   </ItemGroup>

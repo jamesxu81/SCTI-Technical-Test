@@ -1,0 +1,5 @@
+{
+  "dotnet.unitTests.runSettingsPath": "/Users/luckbot/Downloads/SCTI Technical Test/tests/headed.runsettings",
+  "cucumber.features": ["tests/Features/**/*.feature"],
+  "cucumber.glue": ["tests/StepDefinitions/**/*.cs"]
+}

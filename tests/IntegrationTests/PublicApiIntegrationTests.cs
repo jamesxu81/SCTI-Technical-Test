@@ -1,5 +1,6 @@
 using TechnicalTest.Api.Clients;
 using TechnicalTest.Api.Models;
+using TechnicalTest.Tests.Support;
 using NUnit.Framework;
 
 namespace TechnicalTest.Tests.IntegrationTests;
@@ -14,7 +15,7 @@ public class PublicApiIntegrationTests
     [SetUp]
     public void Setup()
     {
-        _httpClient = new HttpClient();
+        _httpClient = new HttpClient { BaseAddress = ApiSettings.BaseAddress };
         _apiClient = new PublicApiClient(_httpClient);
     }
 

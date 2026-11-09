@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Shows the browser; NumberOfTestWorkers caps how many scenarios (browser windows) run at once. -->
+<RunSettings>
+  <RunConfiguration>
+    <EnvironmentVariables>
+      <TEST_Headless>false</TEST_Headless>
+    </EnvironmentVariables>
+  </RunConfiguration>
+  <NUnit>
+    <NumberOfTestWorkers>3</NumberOfTestWorkers>
+  </NUnit>
+</RunSettings>

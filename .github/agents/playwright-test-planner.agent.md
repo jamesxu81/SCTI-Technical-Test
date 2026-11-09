@@ -6,34 +6,35 @@ tools:
   - search
   - read
   - edit
-  - playwright-test/browser_click
-  - playwright-test/browser_close
-  - playwright-test/browser_console_messages
-  - playwright-test/browser_drag
-  - playwright-test/browser_evaluate
-  - playwright-test/browser_file_upload
-  - playwright-test/browser_handle_dialog
-  - playwright-test/browser_hover
-  - playwright-test/browser_navigate
-  - playwright-test/browser_navigate_back
-  - playwright-test/browser_network_request
-  - playwright-test/browser_network_requests
-  - playwright-test/browser_press_key
-  - playwright-test/browser_run_code_unsafe
-  - playwright-test/browser_select_option
-  - playwright-test/browser_snapshot
-  - playwright-test/browser_take_screenshot
-  - playwright-test/browser_type
-  - playwright-test/browser_wait_for
-  - playwright-test/planner_setup_page
+  - playwright/browser_navigate
+  - playwright/browser_navigate_back
+  - playwright/browser_snapshot
+  - playwright/browser_find
+  - playwright/browser_click
+  - playwright/browser_type
+  - playwright/browser_fill_form
+  - playwright/browser_select_option
+  - playwright/browser_press_key
+  - playwright/browser_hover
+  - playwright/browser_wait_for
+  - playwright/browser_handle_dialog
+  - playwright/browser_tabs
+  - playwright/browser_generate_locator
+  - playwright/browser_evaluate
+  - playwright/browser_network_requests
+  - playwright/browser_network_request
+  - playwright/browser_console_messages
+  - playwright/browser_take_screenshot
+  - playwright/browser_close
 model: Claude Sonnet 4.6
 mcp-servers:
-  playwright-test:
+  playwright:
     type: stdio
     command: npx
     args:
-      - playwright
-      - run-test-mcp-server
+      - "@playwright/mcp@latest"
+      - "--caps=testing"
+      - "--isolated"
     tools:
       - "*"
 ---
@@ -52,14 +53,12 @@ live site and write a test plan that `playwright-test-generator` turns into C# c
 - This is a live production site. Stop once the travellers are added on Traveller details. Never continue to payment,
   purchase or any final submit, and walk the journey no more often than you need to.
 - Use fictitious data only: obviously fake names, `@example.com` emails, no real card or ID numbers.
-- Only create or edit files under `specs/`. Never write C# or TypeScript, and never edit `seed.spec.ts` (it only starts
-  the browser).
+- Only create or edit files under `specs/`. Never write C# or TypeScript.
 - Use snapshots, not screenshots, unless a snapshot can't show what you need.
 
 ## Approach
-1. Call `planner_setup_page` once, then `browser_navigate` to `BaseUrl`. If setup fails with
-   "Cannot find module '@playwright/test'" or a missing browser, stop and report that `npm i -D @playwright/test` and
-   `npx playwright install chromium` are needed.
+1. Call `browser_navigate` with `BaseUrl`. Each session starts with a fresh browser profile. If the browser can't
+   start, stop and report the error.
 2. Walk the README journey in order:
    1. Pick One return journey.
    2. Add destinations, travel dates and travellers, then Get plan options.
@@ -69,8 +68,9 @@ live site and write a test plan that `playwright-test-generator` turns into C# c
    6. Fill the traveller form and add 1 adult, 1 dependent and 1 non-dependent.
 3. On each screen, record:
    - The elements the test touches and their locator in Playwright for .NET syntax, for example
-     `Page.GetByRole(AriaRole.Button, new() { Name = "Get plan options" })`. Prefer role, then label, placeholder,
-     text, then test id. No CSS or XPath tied to layout.
+     `Page.GetByRole(AriaRole.Button, new() { Name = "Get plan options" })`. Get Playwright's recommended locator with
+     `browser_generate_locator` and convert it to C#. Prefer role, then label, placeholder, text, then test id. No CSS
+     or XPath tied to layout.
    - Dynamic behaviour the test must wait for: autocomplete lists, date pickers, price recalculation, spinners,
      sections that appear after a choice.
    - Validation rules and the exact error messages: required fields, date limits, age limits for each traveller type.
@@ -82,7 +82,7 @@ live site and write a test plan that `playwright-test-generator` turns into C# c
    - Every scenario starts from a fresh browser and doesn't depend on another scenario.
    - Dates are relative (`today+30`), never fixed calendar dates. Dates of birth fit each traveller type's age rules.
    - Reuse the step texts from `InsuranceBookingSteps.cs` where they fit, and mark new ones **NEW**.
-5. Write the plan to `specs/insurance-booking.plan.md`.
+5. Call `browser_close`, then write the plan to `specs/insurance-booking.plan.md`.
 
 ## Output format
 `specs/insurance-booking.plan.md`, with these sections:

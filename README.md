@@ -244,8 +244,8 @@ dotnet test --filter "Category=UI"
 ## Technologies Used
 
 - **Framework**: .NET 8.0
-- **UI Automation**: Playwright 1.41.0
-- **BDD Framework**: Reqnroll 2.0.3
+- **UI Automation**: Playwright 1.64.1
+- **BDD Framework**: Reqnroll 2.4.1
 - **Test Framework**: NUnit 4.0.1
 - **Mocking**: Moq 4.20.70
 - **Assertions**: FluentAssertions 6.12.0
@@ -306,9 +306,9 @@ For questions or issues, please refer to the technical assessment documentation.
 
 ---
 
-**Author**: Senior Test Automation Engineer Candidate  
-**Version**: 1.0.0  
-**Last Updated**: 2024
+**Author**: Senior Test Automation Engineer Candidate  - James Xu
+**Version**: 2.0.0  
+**Last Updated**: 2026
 
 
 --- 

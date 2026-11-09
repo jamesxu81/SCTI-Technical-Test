@@ -8,6 +8,7 @@ public class PublicApiClient : IPublicApiClient
 {
     private readonly HttpClient _http;
 
+    // The HttpClient's BaseAddress decides which environment is called.
     public PublicApiClient(HttpClient httpClient)
     {
         _http = httpClient;
@@ -15,7 +16,7 @@ public class PublicApiClient : IPublicApiClient
 
     public async Task<List<Post>> GetPostsAsync()
     {
-        var response = await _http.GetAsync("https://jsonplaceholder.typicode.com/posts");
+        var response = await _http.GetAsync("posts");
         response.EnsureSuccessStatusCode();
         string content = await response.Content.ReadAsStringAsync();
         return JsonSerializer.Deserialize<List<Post>>(content)!;
@@ -23,7 +24,7 @@ public class PublicApiClient : IPublicApiClient
 
     public async Task<Post?> GetPostAsync(int id)
     {
-        var response = await _http.GetAsync($"https://jsonplaceholder.typicode.com/posts/{id}");
+        var response = await _http.GetAsync($"posts/{id}");
         if (!response.IsSuccessStatusCode) return null;
 
         string content = await response.Content.ReadAsStringAsync();
@@ -33,7 +34,7 @@ public class PublicApiClient : IPublicApiClient
     public async Task<Post> CreatePostAsync(Post newPost)
     {
         var body = new StringContent(JsonSerializer.Serialize(newPost), Encoding.UTF8, "application/json");
-        var response = await _http.PostAsync("https://jsonplaceholder.typicode.com/posts", body);
+        var response = await _http.PostAsync("posts", body);
         response.EnsureSuccessStatusCode();
 
         string resp = await response.Content.ReadAsStringAsync();

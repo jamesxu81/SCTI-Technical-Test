@@ -21,12 +21,12 @@ TestResults/
 
 # Ignore Playwright artifacts
 playwright/
+.playwright-mcp/
 screenshots/
 videos/
 
 # Ignore IDE files
 .vs/
-.vscode/
 .idea/
 
 # Ignore NuGet packages

@@ -21,6 +21,9 @@ public static class ConfigurationHelper
             builder.AddJsonFile($"appsettings.{environment}.json", optional: false);
         }
 
+        // e.g. TEST_Headless=false overrides "Headless" without editing the JSON files.
+        builder.AddEnvironmentVariables("TEST_");
+
         return builder.Build();
     }
 }
