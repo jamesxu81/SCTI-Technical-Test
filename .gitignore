@@ -5,6 +5,9 @@ obj/
 *.exe
 *.pdb
 
+# Ignore Reqnroll generated code-behind
+*.feature.cs
+
 # Ignore test results
 TestResults/
 *.trx
