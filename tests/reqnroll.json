@@ -1,22 +1,11 @@
-<?xml version="1.0" encoding="utf-8"?>
-<configuration>
-  <reqnroll>
-    <language feature="en" />
-    <bindingCulture name="en-US" />
-    
-    <unitTestProvider name="NUnit" />
-    
-    <trace>
-      <listener type="Reqnroll.Tracing.DefaultListener, Reqnroll" />
-    </trace>
-    
-    <stepAssemblies>
-      <stepAssembly assembly="TechnicalTest.Tests" />
-    </stepAssemblies>
-    
-    <runtime>
-      <missingOrPendingStepsOutcome>Pending</missingOrPendingStepsOutcome>
-      <obsoleteBehavior>None</obsoleteBehavior>
-    </runtime>
-  </reqnroll>
-</configuration>
+{
+  "$schema": "https://schemas.reqnroll.net/reqnroll-config-latest.json",
+  "language": {
+    "feature": "en",
+    "binding": "en-US"
+  },
+  "runtime": {
+    "missingOrPendingStepsOutcome": "Pending",
+    "obsoleteBehavior": "None"
+  }
+}
