@@ -79,7 +79,7 @@ TechnicalTest/
     │   ├── all-tests.yml                  # Every category, on push and PR
     │   ├── ui-tests.yml                   # UI tests per environment, manual
     │   └── perf-tests.yml                 # JMeter load profile of your choice, manual
-    └── agents/                            # Playwright planner, generator and healer agents
+    └── agents/                            # test-planner, test-generator, test-healer (all layers)
 ```
 
 ## Getting Started
@@ -307,8 +307,12 @@ All three workflows run on `ubuntu-24.04` and keep results as build artifacts (1
 ## Test Plans and AI Agents
 
 - [specs/](specs/) holds one plan per layer, with the cases, data and status of each.
-- [.github/agents/](.github/agents/) holds three Playwright agents for UI work: a **planner** that explores the site and
-  writes a plan, a **generator** that turns a plan into C# Reqnroll tests, and a **healer** that fixes failing UI tests.
+- [.github/agents/](.github/agents/) holds three agents for every test layer (UI, API, unit, mock, component,
+  integration, validation and JMeter performance). They also hold what has been learned about the SCTI site and this
+  repo.
+  - **test-planner** studies the requirement, code, live site or API and writes a plan in `specs/`.
+  - **test-generator** implements a plan following the repo's conventions, then builds and runs the tests.
+  - **test-healer** finds the root cause of failing tests and fixes them, or records a known issue.
 
 ## Non-Functional (JMeter)
 
