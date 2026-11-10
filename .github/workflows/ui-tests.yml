@@ -1,0 +1,110 @@
+name: UI Tests (multi-environment)
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Environment to test (All runs Dev, QA and Prod in parallel)
+        type: choice
+        options: [All, Dev, QA, Prod]
+        default: All
+      browser:
+        description: Browser engine
+        type: choice
+        options: [chromium, firefox, webkit]
+        default: chromium
+
+permissions:
+  contents: read
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+  CONFIGURATION: Release
+  # Browsers open at once per environment; each UI scenario creates a draft quote on the live site.
+  UI_WORKERS: 3
+
+jobs:
+  select-environments:
+    name: Select environments
+    runs-on: ubuntu-latest
+    outputs:
+      environments: ${{ steps.select.outputs.environments }}
+    steps:
+      - id: select
+        env:
+          SELECTED: ${{ inputs.environment }}
+        run: |
+          if [ "$SELECTED" = "All" ]; then
+            echo 'environments=["Dev","QA","Prod"]' >> "$GITHUB_OUTPUT"
+          else
+            echo "environments=[\"$SELECTED\"]" >> "$GITHUB_OUTPUT"
+          fi
+
+  ui-tests:
+    name: UI tests (${{ matrix.environment }}, ${{ inputs.browser }})
+    needs: select-environments
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        environment: ${{ fromJSON(needs.select-environments.outputs.environments) }}
+    # Lets each environment have its own protection rules, e.g. an approval before Prod.
+    environment: ${{ matrix.environment }}
+    concurrency:
+      group: ui-tests-${{ matrix.environment }}
+      cancel-in-progress: false
+    env:
+      TEST_ENV: ${{ matrix.environment }}
+      TEST_Browser: ${{ inputs.browser }}
+      TEST_Headless: true
+      RESULTS_DIR: ${{ github.workspace }}/TestResults/${{ matrix.environment }}-${{ inputs.browser }}
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+
+      - name: Set up .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj') }}
+          restore-keys: nuget-${{ runner.os }}-
+
+      - name: Restore
+        run: dotnet restore TechnicalTest.sln
+
+      - name: Build
+        run: dotnet build TechnicalTest.sln --no-restore --configuration "$CONFIGURATION"
+
+      - name: Install Playwright browser
+        run: pwsh "tests/bin/$CONFIGURATION/net8.0/playwright.ps1" install --with-deps "$TEST_Browser"
+
+      - name: Run UI tests
+        run: >
+          dotnet test TechnicalTest.sln
+          --no-build
+          --configuration "$CONFIGURATION"
+          --filter "Category=UI"
+          --results-directory "$RESULTS_DIR"
+          --logger "trx;LogFileName=ui-tests.trx"
+          --logger "html;LogFileName=ui-tests.html"
+          --logger "console;verbosity=normal"
+          --
+          NUnit.NumberOfTestWorkers=$UI_WORKERS
+          NUnit.WorkDirectory="$RESULTS_DIR"
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ui-test-results-${{ matrix.environment }}-${{ inputs.browser }}
+          # TRX and HTML reports, plus screenshots and network logs under TestResults/ui.
+          path: ${{ env.RESULTS_DIR }}
+          if-no-files-found: warn
+          retention-days: 14
