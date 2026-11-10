@@ -11,5 +11,8 @@
   "NRetrySettings": {
     "maxRetries": 2,
     "applyGlobally": true
+  },
+  "formatters": {
+    "html": { "outputFilePath": "TestResults/ui/reqnroll-report.html" }
   }
 }

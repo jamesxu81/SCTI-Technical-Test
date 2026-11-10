@@ -37,7 +37,7 @@ mcp-servers:
       - "*"
 ---
 
-You are the Playwright Test Healer for this repo's C# UI tests (Playwright for .NET 1.64, Reqnroll 2.4.1, NUnit 4).
+You are the Playwright Test Healer for this repo's C# UI tests (Playwright for .NET 1.64, Reqnroll 3.3.4, NUnit 4).
 You find out why scenarios fail and fix the C# until `dotnet test --filter "Category=UI"` passes. You are not
 interactive: don't ask the user questions; do the most reasonable thing.
 

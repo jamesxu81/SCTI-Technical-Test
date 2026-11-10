@@ -16,6 +16,8 @@ on:
 
 permissions:
   contents: read
+  # Lets dorny/test-reporter publish a check run with the results.
+  checks: write
 
 env:
   DOTNET_NOLOGO: true
@@ -27,7 +29,7 @@ env:
 jobs:
   select-environments:
     name: Select environments
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     outputs:
       environments: ${{ steps.select.outputs.environments }}
     steps:
@@ -44,7 +46,7 @@ jobs:
   ui-tests:
     name: UI tests (${{ matrix.environment }}, ${{ inputs.browser }})
     needs: select-environments
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     strategy:
       fail-fast: false
@@ -62,15 +64,15 @@ jobs:
       RESULTS_DIR: ${{ github.workspace }}/TestResults/${{ matrix.environment }}-${{ inputs.browser }}
     steps:
       - name: Check out
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up .NET 8
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v6
         with:
           dotnet-version: 8.0.x
 
       - name: Cache NuGet packages
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.nuget/packages
           key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj') }}
@@ -86,6 +88,8 @@ jobs:
         run: pwsh "tests/bin/$CONFIGURATION/net8.0/playwright.ps1" install --with-deps "$TEST_Browser"
 
       - name: Run UI tests
+        env:
+          REQNROLL_FORMATTERS_HTML: outputFilePath=${{ env.RESULTS_DIR }}/reqnroll-report.html
         run: >
           dotnet test TechnicalTest.sln
           --no-build
@@ -101,10 +105,21 @@ jobs:
 
       - name: Upload test results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ui-test-results-${{ matrix.environment }}-${{ inputs.browser }}
-          # TRX and HTML reports, plus screenshots and network logs under TestResults/ui.
+          # TRX, HTML and Reqnroll HTML reports, plus screenshots, traces, videos and network logs under TestResults/ui.
           path: ${{ env.RESULTS_DIR }}
           if-no-files-found: warn
           retention-days: 14
+
+      - name: Publish test summary
+        if: ${{ !cancelled() }}
+        uses: dorny/test-reporter@v3
+        with:
+          name: UI test results (${{ matrix.environment }}, ${{ inputs.browser }})
+          path: TestResults/${{ matrix.environment }}-${{ inputs.browser }}/*.trx
+          reporter: dotnet-trx
+          list-tests: failed
+          fail-on-error: false
+          fail-on-empty: false

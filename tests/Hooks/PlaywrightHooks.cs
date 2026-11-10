@@ -48,9 +48,15 @@ public sealed class PlaywrightHooks
         _browser = await browserType.LaunchAsync(new() { Headless = UiSettings.Headless });
 
         // The site works out quote dates and traveller ages from the browser clock.
-        _context = await _browser.NewContextAsync(new() { Locale = "en-NZ", TimezoneId = "Pacific/Auckland" });
+        _context = await _browser.NewContextAsync(new()
+        {
+            Locale = "en-NZ",
+            TimezoneId = "Pacific/Auckland",
+            RecordVideoDir = Path.Combine(ArtifactDirectory(), "video-tmp"),
+        });
         _context.SetDefaultTimeout(UiSettings.TimeoutMs);
         _context.SetDefaultNavigationTimeout(UiSettings.TimeoutMs);
+        await _context.Tracing.StartAsync(new() { Screenshots = true, Snapshots = true, Sources = true });
 
         var page = await _context.NewPageAsync();
         var network = new NetworkRecorder(page);
@@ -67,14 +73,18 @@ public sealed class PlaywrightHooks
     [AfterScenario("UI")]
     public async Task StopBrowserAsync()
     {
+        var videoPath = _page?.Video is { } video ? await video.PathAsync() : null;
         try
         {
             await SaveScreenshotIfFailedAsync();
+            await SaveTraceIfFailedAsync();
             await SaveNetworkLogAsync();
         }
         finally
         {
             await CloseBrowserAsync();
+            // The video file is only complete once the browser has closed.
+            KeepVideoIfFailed(videoPath);
         }
     }
 
@@ -90,7 +100,7 @@ public sealed class PlaywrightHooks
                 await _browser.CloseAsync();
             }
         }
-        catch (PlaywrightException exception)
+        catch (Exception exception) when (exception is PlaywrightException or TimeoutException)
         {
             _output.WriteLine($"Browser closed unexpectedly during cleanup: {exception.Message.Split('\n')[0]}");
         }
@@ -113,9 +123,61 @@ public sealed class PlaywrightHooks
             await _page.ScreenshotAsync(new() { Path = path, FullPage = true });
             _output.AddAttachment(path);
         }
-        catch (PlaywrightException exception)
+        catch (Exception exception) when (exception is PlaywrightException or TimeoutException)
         {
             _output.WriteLine($"Could not take a failure screenshot: {exception.Message}");
+        }
+    }
+
+    // Traces are recorded for every scenario but only kept when it fails.
+    private async Task SaveTraceIfFailedAsync()
+    {
+        if (_context is null)
+        {
+            return;
+        }
+
+        try
+        {
+            if (_scenarioContext.TestError is null)
+            {
+                await _context.Tracing.StopAsync();
+                return;
+            }
+
+            var path = ArtifactPath("trace.zip");
+            await _context.Tracing.StopAsync(new() { Path = path });
+            _output.AddAttachment(path);
+            _output.WriteLine($"Playwright trace saved to {path}; open it at https://trace.playwright.dev or with 'playwright.ps1 show-trace'.");
+        }
+        catch (Exception exception) when (exception is PlaywrightException or TimeoutException)
+        {
+            _output.WriteLine($"Could not save the Playwright trace: {exception.Message.Split('\n')[0]}");
+        }
+    }
+
+    private void KeepVideoIfFailed(string? videoPath)
+    {
+        if (videoPath is null || !File.Exists(videoPath))
+        {
+            return;
+        }
+
+        try
+        {
+            if (_scenarioContext.TestError is null)
+            {
+                File.Delete(videoPath);
+                return;
+            }
+
+            var path = ArtifactPath("webm");
+            File.Move(videoPath, path, overwrite: true);
+            _output.AddAttachment(path);
+        }
+        catch (IOException exception)
+        {
+            _output.WriteLine($"Could not save the video: {exception.Message}");
         }
     }
 
@@ -142,9 +204,10 @@ public sealed class PlaywrightHooks
 
     private string ArtifactPath(string extension)
     {
-        var directory = Directory.CreateDirectory(
-            Path.Combine(TestContext.CurrentContext.WorkDirectory, "TestResults", "ui"));
         var scenario = Regex.Replace(_scenarioContext.ScenarioInfo.Title, @"[^\w-]+", "-");
-        return Path.Combine(directory.FullName, $"{scenario}-{_artifactId}.{extension}");
+        return Path.Combine(ArtifactDirectory(), $"{scenario}-{_artifactId}.{extension}");
     }
+
+    private static string ArtifactDirectory() =>
+        Directory.CreateDirectory(Path.Combine(TestContext.CurrentContext.WorkDirectory, "TestResults", "ui")).FullName;
 }

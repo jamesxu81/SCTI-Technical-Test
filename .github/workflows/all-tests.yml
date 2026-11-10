@@ -10,6 +10,8 @@ on:
 
 permissions:
   contents: read
+  # Lets dorny/test-reporter publish a check run with the results.
+  checks: write
 
 # A newer push to the same branch or PR cancels the run still in progress.
 concurrency:
@@ -24,7 +26,7 @@ env:
 jobs:
   tests:
     name: ${{ matrix.category }} tests
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: ${{ matrix.category == 'UI' && 30 || 10 }}
     strategy:
       fail-fast: false
@@ -37,15 +39,15 @@ jobs:
       UI_WORKERS: 3
     steps:
       - name: Check out
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up .NET 8
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v6
         with:
           dotnet-version: 8.0.x
 
       - name: Cache NuGet packages
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.nuget/packages
           key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj') }}
@@ -64,6 +66,8 @@ jobs:
       - name: Run ${{ matrix.category }} tests
         env:
           CATEGORY: ${{ matrix.category }}
+          # Reqnroll's HTML report (UI only); other categories don't produce one.
+          REQNROLL_FORMATTERS_HTML: outputFilePath=${{ env.RESULTS_DIR }}/reqnroll-report.html
         run: |
           workers=()
           if [ "$CATEGORY" = "UI" ]; then workers=("NUnit.NumberOfTestWorkers=$UI_WORKERS"); fi
@@ -79,10 +83,23 @@ jobs:
 
       - name: Upload ${{ matrix.category }} test results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: test-results-${{ matrix.category }}
-          # TRX and HTML reports; for UI also screenshots and network logs under TestResults/ui.
+          # TRX and HTML reports; for UI also the Reqnroll HTML report, and screenshots, traces, videos and network logs under TestResults/ui.
           path: ${{ env.RESULTS_DIR }}
           if-no-files-found: warn
           retention-days: 14
+
+      - name: Publish ${{ matrix.category }} test summary
+        if: ${{ !cancelled() }}
+        uses: dorny/test-reporter@v3
+        # Pull requests from forks get a read-only token and can't create check runs.
+        continue-on-error: ${{ github.event.pull_request.head.repo.fork == true }}
+        with:
+          name: ${{ matrix.category }} test results
+          path: TestResults/${{ matrix.category }}/*.trx
+          reporter: dotnet-trx
+          list-tests: failed
+          fail-on-error: false
+          fail-on-empty: false

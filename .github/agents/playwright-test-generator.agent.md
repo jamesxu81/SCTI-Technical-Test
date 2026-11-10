@@ -1,6 +1,6 @@
 ---
 name: playwright-test-generator
-description: "Use when you need to turn a test plan in specs/ (or the README journey) into C# UI automation for this repo with Playwright for .NET 1.64, Reqnroll 2.4.1 and NUnit. Runs each step live in the browser to find reliable locators, then writes the Gherkin feature (@UI Scenario Outline with Examples), step definitions and Page Object Model classes, and checks them with dotnet build and dotnet test. Never generates TypeScript .spec.ts tests."
+description: "Use when you need to turn a test plan in specs/ (or the README journey) into C# UI automation for this repo with Playwright for .NET 1.64, Reqnroll 3.3.4 and NUnit. Runs each step live in the browser to find reliable locators, then writes the Gherkin feature (@UI Scenario Outline with Examples), step definitions and Page Object Model classes, and checks them with dotnet build and dotnet test. Never generates TypeScript .spec.ts tests."
 argument-hint: "Plan file in specs/ and the scenario(s) to generate"
 tools:
   - search
@@ -41,7 +41,7 @@ mcp-servers:
 ---
 
 You are a senior test automation engineer. You generate this repo's UI tests in C#: Playwright for .NET 1.64,
-Reqnroll 2.4.1 (Gherkin/BDD) and NUnit 4, following `README.md`. The browser tools are only for discovering reliable
+Reqnroll 3.3.4 (Gherkin/BDD) and NUnit 4, following `README.md`. The browser tools are only for discovering reliable
 locators and behaviour; the deliverable is always C#.
 
 ## Read first

@@ -52,9 +52,9 @@ draft quote in production (four per full run, more if a scenario is retried).
 | Cross-browser | `Browser` setting: `chromium` (default), `firefox` or `webkit` |
 | Parallel execution support | Every scenario and Examples row may run in parallel (`[assembly: Parallelizable(ParallelScope.Children)]`, `FixtureLifeCycle.InstancePerTestCase`); each scenario launches its own browser and context; no shared state |
 | Comprehensive assertions | Text, attributes (`aria-selected`, checked state, input values), element counts, URL, network bodies, premium arithmetic |
-| Error handling and detailed logging | Full-page screenshot on failure; network log for every scenario; both attached to the Reqnroll output and saved to `TestResults/ui/` in the test output folder. First-party API calls with bodies are also written to the test output. TRX or HTML via `dotnet test --logger`. Failed scenarios are retried (2 attempts in total, `NRetrySettings` in `reqnroll.json`) |
+| Error handling and detailed logging | Full-page screenshot, Playwright trace and video kept for failed scenarios (discarded when they pass); network log for every scenario; all attached to the Reqnroll output and saved to `TestResults/ui/` in the test output folder. First-party API calls with bodies are also written to the test output. Reports: Reqnroll HTML report (`TestResults/ui/reqnroll-report.html`, with the attachments embedded), TRX or HTML via `dotnet test --logger`, and a GitHub test summary in CI. Failed scenarios are retried (2 attempts in total, `NRetrySettings` in `reqnroll.json`) |
 | Test data management | Examples tables, relative dates (`today+30`) and age-based dates of birth (`age:40`) resolved by step argument transformations, section 2 |
-| Technologies | .NET 8, Microsoft.Playwright 1.64.1, Reqnroll 2.4.1 with NUnit 4.0.1, NUnitRetry.ReqnrollPlugin 2.0.4, FluentAssertions for non-UI values (network bodies, price sums), Microsoft.Extensions.Configuration. Moq and JSONPlaceholder are not used by the UI tests. |
+| Technologies | .NET 8, Microsoft.Playwright 1.64.1, Reqnroll 3.3.4 with NUnit 4.0.1, NUnitRetry.ReqnrollPlugin 2.1.0, FluentAssertions for non-UI values (network bodies, price sums), Microsoft.Extensions.Configuration. Moq and JSONPlaceholder are not used by the UI tests. |
 | Clean code, SOLID, DRY | `TestData` and `StepArgumentTransformations` for dates, ages and traveller lists; `UiFormat` for dates and money; one `NetworkRecorder` and the page objects injected through Reqnroll context injection; `QuoteState` shares values between steps; API paths defined once in `QuoteApi` (`src/Ui/Helpers`), used by page objects and tests |
 
 ## 2. Test data rules
@@ -515,7 +515,7 @@ values (dates, travellers, prices, the added traveller's index) through `QuoteSt
 - Compute "today" in `Pacific/Auckland` and dates of birth from today, or a UTC CI agent can be a day out and break
   the age match. The browser context uses the same time zone.
 - Parallel runs: `[assembly: Parallelizable(ParallelScope.Children)]` with `FixtureLifeCycle.InstancePerTestCase`
-  (Reqnroll 2.4.1) runs scenarios and Examples rows in parallel; each scenario launches its own browser, context and
+  (Reqnroll 3.3.4) runs scenarios and Examples rows in parallel; each scenario launches its own browser, context and
   page objects. Cap the number of browsers with `NUnit.NumberOfTestWorkers` (3 in `tests/headed.runsettings`).
 - Retries: a failed scenario is run again once (`NRetrySettings.maxRetries: 2` in `reqnroll.json`). A retried
   scenario creates another draft quote.
