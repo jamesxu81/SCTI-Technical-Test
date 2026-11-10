@@ -14,4 +14,6 @@ public static class ApiSettings
             return new Uri(url.EndsWith('/') ? url : url + "/");
         }
     }
+
+    public static HttpClient CreateHttpClient() => new(new HttpLoggingHandler()) { BaseAddress = BaseAddress };
 }

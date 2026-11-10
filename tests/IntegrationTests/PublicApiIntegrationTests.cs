@@ -15,7 +15,7 @@ public class PublicApiIntegrationTests
     [SetUp]
     public void Setup()
     {
-        _httpClient = new HttpClient { BaseAddress = ApiSettings.BaseAddress };
+        _httpClient = ApiSettings.CreateHttpClient();
         _apiClient = new PublicApiClient(_httpClient);
     }
 
