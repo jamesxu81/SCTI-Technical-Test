@@ -25,6 +25,13 @@ playwright/
 screenshots/
 videos/
 
+# Raw HAR recordings hold cookies and keys; commit only the sanitized copy
+tests/PerfTests/recordings/raw/
+
+# JMeter results and HTML reports
+tests/PerfTests/jmeter/results/
+*.jtl
+
 # Ignore IDE files
 .vs/
 .idea/

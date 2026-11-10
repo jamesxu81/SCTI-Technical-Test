@@ -66,17 +66,19 @@ TechnicalTest/
 │   ├── ComponentTests/PostProcessorComponentTests.cs
 │   ├── IntegrationTests/PublicApiIntegrationTests.cs
 │   ├── ValidationTests/PostValidationTests.cs
+│   ├── PerfTests/                         # JMeter script, load profiles, journey recording
 │   ├── AssemblyInfo.cs                    # Parallel execution settings
 │   ├── appsettings.json                   # Defaults
 │   ├── appsettings.{Dev,QA,Prod}.json     # Per-environment overrides
 │   ├── headed.runsettings                 # Visible browser, 3 workers
 │   └── reqnroll.json                      # Retry and HTML report settings
 │
-├── specs/                                 # Test plans, one per layer (1 to 7)
+├── specs/                                 # Test plans: 1 to 7 per layer, 8 non-functional
 └── .github/
     ├── workflows/
     │   ├── all-tests.yml                  # Every category, on push and PR
-    │   └── ui-tests.yml                   # UI tests per environment, manual
+    │   ├── ui-tests.yml                   # UI tests per environment, manual
+    │   └── perf-tests.yml                 # JMeter load profile of your choice, manual
     └── agents/                            # Playwright planner, generator and healer agents
 ```
 
@@ -231,7 +233,7 @@ Failed UI scenarios are retried up to 2 times (`NRetrySettings` in `reqnroll.jso
 
 ## CI/CD Pipelines
 
-Both workflows run on `ubuntu-24.04` and keep results as build artifacts for 14 days.
+All three workflows run on `ubuntu-24.04` and keep results as build artifacts (14 days; 30 for performance runs).
 
 ### All Tests ([all-tests.yml](.github/workflows/all-tests.yml))
 - Runs on push to `main`, on pull requests and manually; changes to Markdown or `specs/` only don't trigger it.
@@ -244,6 +246,18 @@ Both workflows run on `ubuntu-24.04` and keep results as build artifacts for 14 
 - "All" runs Dev, QA and Prod in parallel; each uses its GitHub environment, so protection rules such as an approval
   before Prod apply.
 - Uploads results per environment and browser and publishes a test summary.
+
+### Performance Tests, JMeter ([perf-tests.yml](.github/workflows/perf-tests.yml))
+- **Trigger:** manual only. Choose the load profile (smoke, baseline, load, stress), the target host and the allowed
+  error %.
+- **Target guard:** the run stops if baseline, load or stress has no host, and it never runs them against the live
+  site. Only one performance run happens at a time.
+- **Setup:** it installs Java 21 and a checksum-verified, cached JMeter 5.6.3, then runs the profile.
+- **Results:**
+  - Posts a response-time table per transaction to the run summary.
+  - Fails if the error rate is over the limit.
+  - Uploads the JTL, `jmeter.log` and HTML report.
+- **Approval:** add required reviewers to the `perf` environment in the repo settings so each run is approved first.
 
 ## Technologies Used
 
@@ -296,7 +310,29 @@ Both workflows run on `ubuntu-24.04` and keep results as build artifacts for 14 
 - [.github/agents/](.github/agents/) holds three Playwright agents for UI work: a **planner** that explores the site and
   writes a plan, a **generator** that turns a plan into C# Reqnroll tests, and a **healer** that fixes failing UI tests.
 
-## Non-Functional (not yet implemented)
+## Non-Functional (JMeter)
+
+Plan: [specs/8-non-functional-performance.plan.md](specs/8-non-functional-performance.plan.md). It covers how the
+journey is recorded, the workload model, the baseline, load and stress profiles, distributed load generation, targets,
+and the rules for testing a live site.
+
+Script: [tests/PerfTests/jmeter/booking-journey.jmx](tests/PerfTests/jmeter/booking-journey.jmx). The load profile is
+chosen at run time, from `tests/PerfTests/jmeter`:
+
+```bash
+brew install jmeter    # JMeter 5.6.3 + OpenJDK
+jmeter -n -t booking-journey.jmx -q profiles/smoke.properties -l results/smoke.jtl -e -o results/smoke-report
+jmeter -n -t booking-journey.jmx -q profiles/load.properties -Jhost=<approved host> -l results/load.jtl -e -o results/load-report
+```
+
+Only `smoke` (1 journey) may run against the live site. Baseline, load and stress need a test environment or SCTI's
+approval; without `-Jhost` they go to a host that never resolves.
+
+In CI, run **Performance Tests (JMeter)** ([perf-tests.yml](.github/workflows/perf-tests.yml)) from the Actions tab:
+- Choose the profile and target host when you start it.
+- It posts a response-time table to the run summary and uploads the JTL, log and HTML report as an artifact.
+
+The README's original requirements:
 
 **Record the journey below**
 - Navigate to https://insure.scti.co.nz/

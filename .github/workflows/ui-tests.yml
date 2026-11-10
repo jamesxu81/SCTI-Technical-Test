@@ -100,7 +100,7 @@ jobs:
           --logger "html;LogFileName=ui-tests.html"
           --logger "console;verbosity=normal"
           --
-          NUnit.NumberOfTestWorkers=$UI_WORKERS
+          NUnit.NumberOfTestWorkers="$UI_WORKERS"
           NUnit.WorkDirectory="$RESULTS_DIR"
 
       - name: Upload test results

@@ -1,0 +1,155 @@
+name: Performance Tests (JMeter)
+
+on:
+  workflow_dispatch:
+    inputs:
+      profile:
+        description: Load profile (tests/PerfTests/jmeter/profiles)
+        type: choice
+        options: [smoke, baseline, load, stress]
+        default: smoke
+      host:
+        description: Target host for baseline, load and stress (an approved test environment, e.g. test.insure.example). Smoke uses the live site when empty.
+        type: string
+        default: ''
+      max_error_pct:
+        description: Fail the run when more than this % of samples fail
+        type: string
+        default: '1'
+
+permissions:
+  contents: read
+
+# One performance run at a time, so two runs never add up against the same site.
+concurrency:
+  group: perf-tests
+  cancel-in-progress: false
+
+env:
+  JMETER_VERSION: 5.6.3
+  LIVE_HOST: insure.scti.co.nz
+
+jobs:
+  perf-test:
+    name: JMeter ${{ inputs.profile }}
+    runs-on: ubuntu-24.04
+    # Stress runs about 95 minutes.
+    timeout-minutes: 130
+    # Add required reviewers to this environment in the repo settings so every run is approved first.
+    environment: perf
+    defaults:
+      run:
+        working-directory: tests/PerfTests/jmeter
+    env:
+      PROFILE: ${{ inputs.profile }}
+      TARGET_HOST: ${{ inputs.host }}
+      MAX_ERROR_PCT: ${{ inputs.max_error_pct }}
+    steps:
+      - name: Check out
+        uses: actions/checkout@v7
+
+      - name: Check the target is allowed
+        run: |
+          if [[ -n "$TARGET_HOST" && ! "$TARGET_HOST" =~ ^[A-Za-z0-9.-]+$ ]]; then
+            echo "::error::host must be a plain host name (no scheme, port or path): '$TARGET_HOST'"
+            exit 1
+          fi
+          if [[ ! "$MAX_ERROR_PCT" =~ ^[0-9]+([.][0-9]+)?$ ]]; then
+            echo "::error::max_error_pct must be a number: '$MAX_ERROR_PCT'"
+            exit 1
+          fi
+          if [[ "$PROFILE" != "smoke" ]]; then
+            if [[ -z "$TARGET_HOST" ]]; then
+              echo "::error::The $PROFILE profile needs a host: an approved test environment (see specs/8-non-functional-performance.plan.md, section 2)."
+              exit 1
+            fi
+            host=$(printf '%s' "$TARGET_HOST" | tr '[:upper:]' '[:lower:]')
+            if [[ "${host%.}" == "$LIVE_HOST" ]]; then
+              echo "::error::$PROFILE can't run against the live site; use an approved test environment (see specs/8-non-functional-performance.plan.md, section 2)."
+              exit 1
+            fi
+          fi
+          echo "Profile: $PROFILE, host: ${TARGET_HOST:-$LIVE_HOST}"
+
+      - name: Set up Java 21
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Cache JMeter
+        id: jmeter-cache
+        uses: actions/cache@v6
+        with:
+          path: ~/jmeter
+          key: jmeter-${{ env.JMETER_VERSION }}
+
+      - name: Install JMeter
+        if: steps.jmeter-cache.outputs.cache-hit != 'true'
+        working-directory: ${{ runner.temp }}
+        run: |
+          base="https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-$JMETER_VERSION.tgz"
+          curl -fsSL --retry 3 -o "apache-jmeter-$JMETER_VERSION.tgz" "$base"
+          curl -fsSL --retry 3 -o "apache-jmeter-$JMETER_VERSION.tgz.sha512" "$base.sha512"
+          sha512sum -c "apache-jmeter-$JMETER_VERSION.tgz.sha512"
+          mkdir -p ~/jmeter
+          tar -xzf "apache-jmeter-$JMETER_VERSION.tgz" -C ~/jmeter --strip-components=1
+
+      - name: Add JMeter to PATH
+        run: |
+          echo "$HOME/jmeter/bin" >> "$GITHUB_PATH"
+          "$HOME/jmeter/bin/jmeter" --version | tail -n 3
+
+      - name: Run ${{ inputs.profile }} profile
+        run: |
+          mkdir -p results
+          args=(-n -t booking-journey.jmx -q "profiles/$PROFILE.properties")
+          # -J after -q, so it overrides the profile's placeholder host.
+          if [[ -n "$TARGET_HOST" ]]; then args+=("-Jhost=$TARGET_HOST"); fi
+          args+=("-Jrun.id=gha-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT")
+          args+=(-l "results/$PROFILE.jtl" -j results/jmeter.log -e -o "results/$PROFILE-report")
+          jmeter "${args[@]}"
+
+      - name: Publish summary and check the error rate
+        if: ${{ !cancelled() }}
+        run: |
+          python3 - <<'EOF'
+          import json, os, sys
+
+          profile = os.environ["PROFILE"]
+          max_error = float(os.environ["MAX_ERROR_PCT"])
+          path = f"results/{profile}-report/statistics.json"
+          lines = [f"## JMeter {profile} results", ""]
+          if not os.path.exists(path):
+              lines.append("No report was produced; see jmeter.log in the artifact.")
+              failed = True
+          else:
+              stats = json.load(open(path))
+              total = stats.pop("Total")
+              lines += [
+                  "| Label | Samples | Errors % | Median ms | p90 ms | p95 ms | p99 ms | Throughput/s |",
+                  "|---|---:|---:|---:|---:|---:|---:|---:|",
+              ]
+              for row in sorted(stats.values(), key=lambda r: r["transaction"]) + [total]:
+                  lines.append(
+                      f"| {row['transaction']} | {row['sampleCount']} | {row['errorPct']:.2f} | "
+                      f"{row['medianResTime']:.0f} | {row['pct1ResTime']:.0f} | {row['pct2ResTime']:.0f} | "
+                      f"{row['pct3ResTime']:.0f} | {row['throughput']:.2f} |")
+              failed = total["sampleCount"] == 0 or total["errorPct"] > max_error
+              lines += ["", f"Error rate {total['errorPct']:.2f}% (limit {max_error}%) over {total['sampleCount']} samples."]
+          lines += ["", "The full HTML report is in the run's artifact (index.html)."]
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a") as summary:
+              summary.write("\n".join(lines) + "\n")
+          print("\n".join(lines))
+          sys.exit(1 if failed else 0)
+          EOF
+
+      - name: Upload results
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: perf-results-${{ inputs.profile }}-${{ github.run_number }}
+          # JTL results, jmeter.log and the HTML report.
+          path: tests/PerfTests/jmeter/results
+          if-no-files-found: warn
+          retention-days: 30

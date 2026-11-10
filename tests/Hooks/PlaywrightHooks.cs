@@ -48,12 +48,21 @@ public sealed class PlaywrightHooks
         _browser = await browserType.LaunchAsync(new() { Headless = UiSettings.Headless });
 
         // The site works out quote dates and traveller ages from the browser clock.
-        _context = await _browser.NewContextAsync(new()
+        var contextOptions = new BrowserNewContextOptions
         {
             Locale = "en-NZ",
             TimezoneId = "Pacific/Auckland",
             RecordVideoDir = Path.Combine(ArtifactDirectory(), "video-tmp"),
-        });
+        };
+        if (!string.IsNullOrWhiteSpace(UiSettings.RecordHarDir))
+        {
+            contextOptions.RecordHarPath = Path.Combine(
+                Directory.CreateDirectory(UiSettings.RecordHarDir).FullName, $"{ArtifactName()}.har");
+            contextOptions.RecordHarContent = HarContentPolicy.Embed;
+            contextOptions.RecordHarMode = HarMode.Full;
+        }
+
+        _context = await _browser.NewContextAsync(contextOptions);
         _context.SetDefaultTimeout(UiSettings.TimeoutMs);
         _context.SetDefaultNavigationTimeout(UiSettings.TimeoutMs);
         await _context.Tracing.StartAsync(new() { Screenshots = true, Snapshots = true, Sources = true });
@@ -94,6 +103,12 @@ public sealed class PlaywrightHooks
     {
         try
         {
+            // The HAR file is only written when the context closes.
+            if (_context is not null)
+            {
+                await _context.CloseAsync();
+            }
+
             // Closing the browser also closes its context and page.
             if (_browser is not null)
             {
@@ -202,11 +217,11 @@ public sealed class PlaywrightHooks
         }
     }
 
-    private string ArtifactPath(string extension)
-    {
-        var scenario = Regex.Replace(_scenarioContext.ScenarioInfo.Title, @"[^\w-]+", "-");
-        return Path.Combine(ArtifactDirectory(), $"{scenario}-{_artifactId}.{extension}");
-    }
+    private string ArtifactPath(string extension) =>
+        Path.Combine(ArtifactDirectory(), $"{ArtifactName()}.{extension}");
+
+    private string ArtifactName() =>
+        $"{Regex.Replace(_scenarioContext.ScenarioInfo.Title, @"[^\w-]+", "-")}-{_artifactId}";
 
     private static string ArtifactDirectory() =>
         Directory.CreateDirectory(Path.Combine(TestContext.CurrentContext.WorkDirectory, "TestResults", "ui")).FullName;

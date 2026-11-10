@@ -1,0 +1,9 @@
+destinations|startOffset|endOffset|adultAges|dependentAges|nonDependentAges|discount|excess|cancellation|extra
+"JPN","AUS"|30|44|40|10|12|true|100|5000|Ski
+"AUS"|60|70|65|20|17|false|0|Unlimited|Cruise
+"FJI"|14|21|35,33|||true|200|2500|None
+"USA","CAN"|45|65|52|16||false|100|5000|Moped
+"GBR","FRA","DEU"|90|120|70,68|||false|200|Unlimited|None
+"THA"|20|30|28|||true|0|2500|Moped
+"JPN"|40|47|45,43|8,5||true|100|2500|Ski
+"AUS"|10|13|30|||false|200|2500|Cruise

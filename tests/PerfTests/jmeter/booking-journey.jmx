@@ -1,0 +1,551 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jmeterTestPlan version="1.2" properties="5.0" jmeter="5.6.3">
+  <hashTree>
+    <TestPlan guiclass="TestPlanGui" testclass="TestPlan" testname="SCTI booking journey">
+      <stringProp name="TestPlan.comments">Run with a load profile: jmeter -n -t booking-journey.jmx -q profiles/&lt;profile&gt;.properties -l results/&lt;profile&gt;.jtl -e -o results/&lt;profile&gt;-report</stringProp>
+      <boolProp name="TestPlan.functional_mode">false</boolProp>
+      <boolProp name="TestPlan.serialize_threadgroups">false</boolProp>
+      <elementProp name="TestPlan.user_defined_variables" elementType="Arguments" guiclass="ArgumentsPanel" testclass="Arguments" testname="User Defined Variables">
+        <collectionProp name="Arguments.arguments">
+          <elementProp name="HOST" elementType="Argument">
+            <stringProp name="Argument.name">HOST</stringProp>
+            <stringProp name="Argument.value">${__P(host,insure.scti.co.nz)}</stringProp>
+            <stringProp name="Argument.metadata">=</stringProp>
+          </elementProp>
+          <elementProp name="RUN_ID" elementType="Argument">
+            <stringProp name="Argument.name">RUN_ID</stringProp>
+            <stringProp name="Argument.value">${__P(run.id,${__time(yyyyMMdd-HHmmss,)})}</stringProp>
+            <stringProp name="Argument.metadata">=</stringProp>
+          </elementProp>
+          <elementProp name="QUOTE_ABOVE" elementType="Argument">
+            <stringProp name="Argument.name">QUOTE_ABOVE</stringProp>
+            <stringProp name="Argument.value">${__P(funnel.quote.above,15)}</stringProp>
+            <stringProp name="Argument.desc">Journeys whose funnel number (1-100) is above this get a quote: 85%</stringProp>
+            <stringProp name="Argument.metadata">=</stringProp>
+          </elementProp>
+          <elementProp name="CUSTOMISE_ABOVE" elementType="Argument">
+            <stringProp name="Argument.name">CUSTOMISE_ABOVE</stringProp>
+            <stringProp name="Argument.value">${__P(funnel.customise.above,50)}</stringProp>
+            <stringProp name="Argument.desc">Above this they customise the plan: 50%</stringProp>
+            <stringProp name="Argument.metadata">=</stringProp>
+          </elementProp>
+          <elementProp name="SELECT_ABOVE" elementType="Argument">
+            <stringProp name="Argument.name">SELECT_ABOVE</stringProp>
+            <stringProp name="Argument.value">${__P(funnel.select.above,70)}</stringProp>
+            <stringProp name="Argument.desc">Above this they go on to traveller details: 30%</stringProp>
+            <stringProp name="Argument.metadata">=</stringProp>
+          </elementProp>
+          <elementProp name="THINK_HOME_MS" elementType="Argument">
+            <stringProp name="Argument.name">THINK_HOME_MS</stringProp>
+            <stringProp name="Argument.value">${__groovy(Math.round(30000 * (props.get(&apos;think.scale&apos;) ?: &apos;1&apos;).toDouble()))}</stringProp>
+            <stringProp name="Argument.desc">Filling in destinations, dates and travellers</stringProp>
+            <stringProp name="Argument.metadata">=</stringProp>
+          </elementProp>
+          <elementProp name="THINK_PLANS_MS" elementType="Argument">
+            <stringProp name="Argument.name">THINK_PLANS_MS</stringProp>
+            <stringProp name="Argument.value">${__groovy(Math.round(20000 * (props.get(&apos;think.scale&apos;) ?: &apos;1&apos;).toDouble()))}</stringProp>
+            <stringProp name="Argument.desc">Comparing plans</stringProp>
+            <stringProp name="Argument.metadata">=</stringProp>
+          </elementProp>
+          <elementProp name="THINK_CHANGE_MS" elementType="Argument">
+            <stringProp name="Argument.name">THINK_CHANGE_MS</stringProp>
+            <stringProp name="Argument.value">${__groovy(Math.round(8000 * (props.get(&apos;think.scale&apos;) ?: &apos;1&apos;).toDouble()))}</stringProp>
+            <stringProp name="Argument.desc">Before each plan change</stringProp>
+            <stringProp name="Argument.metadata">=</stringProp>
+          </elementProp>
+          <elementProp name="THINK_TRAVELLERS_MS" elementType="Argument">
+            <stringProp name="Argument.name">THINK_TRAVELLERS_MS</stringProp>
+            <stringProp name="Argument.value">${__groovy(Math.round(150000 * (props.get(&apos;think.scale&apos;) ?: &apos;1&apos;).toDouble()))}</stringProp>
+            <stringProp name="Argument.desc">Eligibility, declarations and 3 traveller forms; the site gets no requests</stringProp>
+            <stringProp name="Argument.metadata">=</stringProp>
+          </elementProp>
+        </collectionProp>
+      </elementProp>
+    </TestPlan>
+    <hashTree>
+      <ConfigTestElement guiclass="HttpDefaultsGui" testclass="ConfigTestElement" testname="HTTP Request Defaults">
+        <intProp name="HTTPSampler.connect_timeout">10000</intProp>
+        <intProp name="HTTPSampler.response_timeout">60000</intProp>
+        <stringProp name="HTTPSampler.domain">${HOST}</stringProp>
+        <stringProp name="HTTPSampler.protocol">https</stringProp>
+        <stringProp name="HTTPSampler.contentEncoding">UTF-8</stringProp>
+        <elementProp name="HTTPsampler.Arguments" elementType="Arguments" guiclass="HTTPArgumentsPanel" testclass="Arguments" testname="User Defined Variables">
+          <collectionProp name="Arguments.arguments"/>
+        </elementProp>
+        <stringProp name="HTTPSampler.implementation">HttpClient4</stringProp>
+      </ConfigTestElement>
+      <hashTree/>
+      <CookieManager guiclass="CookiePanel" testclass="CookieManager" testname="HTTP Cookie Manager">
+        <collectionProp name="CookieManager.cookies"/>
+        <boolProp name="CookieManager.clearEachIteration">true</boolProp>
+        <boolProp name="CookieManager.controlledByThreadGroup">false</boolProp>
+      </CookieManager>
+      <hashTree/>
+      <HeaderManager guiclass="HeaderPanel" testclass="HeaderManager" testname="Browser headers">
+        <collectionProp name="HeaderManager.headers">
+          <elementProp name="" elementType="Header">
+            <stringProp name="Header.name">User-Agent</stringProp>
+            <stringProp name="Header.value">Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36</stringProp>
+          </elementProp>
+          <elementProp name="" elementType="Header">
+            <stringProp name="Header.name">Accept-Language</stringProp>
+            <stringProp name="Header.value">en-NZ</stringProp>
+          </elementProp>
+          <elementProp name="" elementType="Header">
+            <stringProp name="Header.name">Accept-Encoding</stringProp>
+            <stringProp name="Header.value">gzip, deflate, br</stringProp>
+          </elementProp>
+          <elementProp name="" elementType="Header">
+            <stringProp name="Header.name">X-Load-Test</stringProp>
+            <stringProp name="Header.value">${RUN_ID}</stringProp>
+          </elementProp>
+        </collectionProp>
+      </HeaderManager>
+      <hashTree/>
+      <CSVDataSet guiclass="TestBeanGUI" testclass="CSVDataSet" testname="Journey data">
+        <stringProp name="filename">${__P(data.file,data/journeys.csv)}</stringProp>
+        <stringProp name="fileEncoding">UTF-8</stringProp>
+        <stringProp name="variableNames"></stringProp>
+        <boolProp name="ignoreFirstLine">false</boolProp>
+        <stringProp name="delimiter">|</stringProp>
+        <boolProp name="quotedData">false</boolProp>
+        <boolProp name="recycle">true</boolProp>
+        <boolProp name="stopThread">false</boolProp>
+        <stringProp name="shareMode">shareMode.all</stringProp>
+      </CSVDataSet>
+      <hashTree/>
+      <OpenModelThreadGroup guiclass="OpenModelThreadGroupGui" testclass="OpenModelThreadGroup" testname="Booking journeys (open model)" enabled="true">
+        <stringProp name="TestPlan.comments">Each arrival is one visitor doing one journey. The arrival rate comes from the profile&apos;s schedule property.</stringProp>
+        <stringProp name="OpenModelThreadGroup.schedule">${__P(schedule)}</stringProp>
+        <stringProp name="OpenModelThreadGroup.random_seed">${__P(random.seed,0)}</stringProp>
+        <stringProp name="ThreadGroup.on_sample_error">stopthread</stringProp>
+        <elementProp name="ThreadGroup.main_controller" elementType="OpenModelThreadGroupController"/>
+      </OpenModelThreadGroup>
+      <hashTree>
+        <RandomVariableConfig guiclass="TestBeanGUI" testclass="RandomVariableConfig" testname="Funnel number (user type)">
+          <stringProp name="variableName">funnel</stringProp>
+          <stringProp name="outputFormat"></stringProp>
+          <stringProp name="minimumValue">${__P(funnel.min,1)}</stringProp>
+          <stringProp name="maximumValue">100</stringProp>
+          <stringProp name="randomSeed"></stringProp>
+          <boolProp name="perThread">false</boolProp>
+        </RandomVariableConfig>
+        <hashTree/>
+        <IfController guiclass="IfControllerPanel" testclass="IfController" testname="Journey cap (max.journeys)" enabled="true">
+          <stringProp name="IfController.condition">${__jexl3(${__counter(FALSE,)} &lt;= ${__P(max.journeys,1000000000)})}</stringProp>
+          <boolProp name="IfController.evaluateAll">false</boolProp>
+          <boolProp name="IfController.useExpression">true</boolProp>
+        </IfController>
+        <hashTree>
+          <TransactionController guiclass="TransactionControllerGui" testclass="TransactionController" testname="T01_Home">
+            <boolProp name="TransactionController.includeTimers">false</boolProp>
+          </TransactionController>
+          <hashTree>
+            <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="T01_Home_page" enabled="true">
+              <stringProp name="HTTPSampler.path">/</stringProp>
+              <boolProp name="HTTPSampler.follow_redirects">true</boolProp>
+              <stringProp name="HTTPSampler.method">GET</stringProp>
+              <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
+              <boolProp name="HTTPSampler.postBodyRaw">false</boolProp>
+              <elementProp name="HTTPsampler.Arguments" elementType="Arguments" guiclass="HTTPArgumentsPanel" testclass="Arguments" testname="User Defined Variables">
+                <collectionProp name="Arguments.arguments"/>
+              </elementProp>
+            </HTTPSamplerProxy>
+            <hashTree>
+              <HeaderManager guiclass="HeaderPanel" testclass="HeaderManager" testname="Page headers" enabled="true">
+                <collectionProp name="HeaderManager.headers">
+                  <elementProp name="" elementType="Header">
+                    <stringProp name="Header.name">Accept</stringProp>
+                    <stringProp name="Header.value">text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8</stringProp>
+                  </elementProp>
+                </collectionProp>
+              </HeaderManager>
+              <hashTree/>
+              <ResponseAssertion guiclass="AssertionGui" testclass="ResponseAssertion" testname="Is the SCTI page" enabled="true">
+                <collectionProp name="Asserion.test_strings">
+                  <stringProp name="2539717">SCTI</stringProp>
+                </collectionProp>
+                <stringProp name="Assertion.custom_message">Not the SCTI page (blocked or a challenge page?)</stringProp>
+                <stringProp name="Assertion.test_field">Assertion.response_data</stringProp>
+                <boolProp name="Assertion.assume_success">false</boolProp>
+                <intProp name="Assertion.test_type">16</intProp>
+              </ResponseAssertion>
+              <hashTree/>
+            </hashTree>
+            <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="T01_Config" enabled="true">
+              <stringProp name="HTTPSampler.path">/api/config</stringProp>
+              <boolProp name="HTTPSampler.follow_redirects">true</boolProp>
+              <stringProp name="HTTPSampler.method">GET</stringProp>
+              <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
+              <boolProp name="HTTPSampler.postBodyRaw">false</boolProp>
+              <elementProp name="HTTPsampler.Arguments" elementType="Arguments" guiclass="HTTPArgumentsPanel" testclass="Arguments" testname="User Defined Variables">
+                <collectionProp name="Arguments.arguments"/>
+              </elementProp>
+            </HTTPSamplerProxy>
+            <hashTree>
+              <JSONPathAssertion guiclass="JSONPathAssertionGui" testclass="JSONPathAssertion" testname="Channel is NZL" enabled="true">
+                <stringProp name="JSON_PATH">$.channel</stringProp>
+                <stringProp name="EXPECTED_VALUE">NZL</stringProp>
+                <boolProp name="JSONVALIDATION">true</boolProp>
+                <boolProp name="EXPECT_NULL">false</boolProp>
+                <boolProp name="INVERT">false</boolProp>
+                <boolProp name="ISREGEX">false</boolProp>
+              </JSONPathAssertion>
+              <hashTree/>
+            </hashTree>
+          </hashTree>
+          <TestAction guiclass="TestActionGui" testclass="TestAction" testname="Think: fill in the quote form">
+            <intProp name="ActionProcessor.action">1</intProp>
+            <intProp name="ActionProcessor.target">0</intProp>
+            <stringProp name="ActionProcessor.duration">${THINK_HOME_MS}</stringProp>
+          </TestAction>
+          <hashTree/>
+          <IfController guiclass="IfControllerPanel" testclass="IfController" testname="Gets a quote? (85%)" enabled="true">
+            <stringProp name="IfController.condition">${__jexl3(${funnel} &gt; ${QUOTE_ABOVE})}</stringProp>
+            <boolProp name="IfController.evaluateAll">false</boolProp>
+            <boolProp name="IfController.useExpression">true</boolProp>
+          </IfController>
+          <hashTree>
+            <TransactionController guiclass="TransactionControllerGui" testclass="TransactionController" testname="T02_GetPlanOptions">
+              <boolProp name="TransactionController.includeTimers">false</boolProp>
+            </TransactionController>
+            <hashTree>
+              <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="T02_CreateQuote">
+                <stringProp name="HTTPSampler.path">/api/Quotes/create</stringProp>
+                <stringProp name="HTTPSampler.method">POST</stringProp>
+                <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
+                <boolProp name="HTTPSampler.postBodyRaw">true</boolProp>
+                <elementProp name="HTTPsampler.Arguments" elementType="Arguments">
+                  <collectionProp name="Arguments.arguments">
+                    <elementProp name="" elementType="HTTPArgument">
+                      <boolProp name="HTTPArgument.always_encode">false</boolProp>
+                      <stringProp name="Argument.value">{&quot;ProductCode&quot;:&quot;ST&quot;,&quot;BaseCountry&quot;:&quot;NZL&quot;,&quot;StartDateOfJourney&quot;:&quot;${journeyStart}T00:00:00.000Z&quot;,&quot;StartDateOfInsurance&quot;:&quot;${insuranceStart}T00:00:00.000Z&quot;,&quot;EndDate&quot;:&quot;${journeyEnd}T00:00:00.000Z&quot;,&quot;Destinations&quot;:[${destinations}],&quot;AdultsAge&quot;:[${adultAges}],&quot;NonDependentChildAges&quot;:[${nonDependentAges}],&quot;DependentChildAges&quot;:[${dependentAges}],&quot;ChildAges&quot;:[]}</stringProp>
+                      <stringProp name="Argument.metadata">=</stringProp>
+                    </elementProp>
+                  </collectionProp>
+                </elementProp>
+              </HTTPSamplerProxy>
+              <hashTree>
+                <JSR223PreProcessor guiclass="TestBeanGUI" testclass="JSR223PreProcessor" testname="Travel dates from today in New Zealand" enabled="true">
+                  <stringProp name="scriptLanguage">groovy</stringProp>
+                  <stringProp name="parameters"></stringProp>
+                  <stringProp name="filename"></stringProp>
+                  <stringProp name="cacheKey">true</stringProp>
+                  <stringProp name="script">// The site works in New Zealand dates, whatever time zone the load generator uses.
+def today = java.time.LocalDate.now(java.time.ZoneId.of(&apos;Pacific/Auckland&apos;))
+vars.put(&apos;insuranceStart&apos;, today.toString())
+vars.put(&apos;journeyStart&apos;, today.plusDays(vars.get(&apos;startOffset&apos;) as long).toString())
+vars.put(&apos;journeyEnd&apos;, today.plusDays(vars.get(&apos;endOffset&apos;) as long).toString())</stringProp>
+                </JSR223PreProcessor>
+                <hashTree/>
+                <JSR223PostProcessor guiclass="TestBeanGUI" testclass="JSR223PostProcessor" testname="Keep quote ids and default options" enabled="true">
+                  <stringProp name="scriptLanguage">groovy</stringProp>
+                  <stringProp name="parameters"></stringProp>
+                  <stringProp name="filename"></stringProp>
+                  <stringProp name="cacheKey">true</stringProp>
+                  <stringProp name="script">if (prev.getResponseCode() != &apos;200&apos;) {
+    return
+}
+def quote = new groovy.json.JsonSlurper().parseText(prev.getResponseDataAsString())
+def premium = quote.Premiums.find { it.PolicyTypeCode == &apos;ST&apos; } ?: quote.Premiums[0]
+vars.put(&apos;quoteId&apos;, quote.QuoteId as String)
+vars.put(&apos;policyNumber&apos;, quote.PolicyNumber as String)
+// Shown as &quot;$200&quot; and &quot;$2,500&quot;; the API takes &quot;200&quot; and &quot;2500&quot;.
+vars.put(&apos;defaultExcess&apos;, (premium.SelectedExcess as String).replaceAll(&apos;[$,]&apos;, &apos;&apos;))
+vars.put(&apos;defaultCancellation&apos;, (premium.SelectedCancellationCover as String).replaceAll(&apos;[$,]&apos;, &apos;&apos;))</stringProp>
+                </JSR223PostProcessor>
+                <hashTree/>
+                <HeaderManager guiclass="HeaderPanel" testclass="HeaderManager" testname="API headers" enabled="true">
+                  <collectionProp name="HeaderManager.headers">
+                    <elementProp name="" elementType="Header">
+                      <stringProp name="Header.name">Content-Type</stringProp>
+                      <stringProp name="Header.value">application/json</stringProp>
+                    </elementProp>
+                    <elementProp name="" elementType="Header">
+                      <stringProp name="Header.name">Accept</stringProp>
+                      <stringProp name="Header.value">*/*</stringProp>
+                    </elementProp>
+                    <elementProp name="" elementType="Header">
+                      <stringProp name="Header.name">Origin</stringProp>
+                      <stringProp name="Header.value">https://${HOST}</stringProp>
+                    </elementProp>
+                    <elementProp name="" elementType="Header">
+                      <stringProp name="Header.name">Referer</stringProp>
+                      <stringProp name="Header.value">https://${HOST}/</stringProp>
+                    </elementProp>
+                  </collectionProp>
+                </HeaderManager>
+                <hashTree/>
+                <JSONPathAssertion guiclass="JSONPathAssertionGui" testclass="JSONPathAssertion" testname="Quote created" enabled="true">
+                  <stringProp name="JSON_PATH">$.IsSuccess</stringProp>
+                  <stringProp name="EXPECTED_VALUE">true</stringProp>
+                  <boolProp name="JSONVALIDATION">true</boolProp>
+                  <boolProp name="EXPECT_NULL">false</boolProp>
+                  <boolProp name="INVERT">false</boolProp>
+                  <boolProp name="ISREGEX">false</boolProp>
+                </JSONPathAssertion>
+                <hashTree/>
+                <JSONPathAssertion guiclass="JSONPathAssertionGui" testclass="JSONPathAssertion" testname="Has a quote id" enabled="true">
+                  <stringProp name="JSON_PATH">$.QuoteId</stringProp>
+                  <stringProp name="EXPECTED_VALUE"></stringProp>
+                  <boolProp name="JSONVALIDATION">false</boolProp>
+                  <boolProp name="EXPECT_NULL">false</boolProp>
+                  <boolProp name="INVERT">false</boolProp>
+                  <boolProp name="ISREGEX">false</boolProp>
+                </JSONPathAssertion>
+                <hashTree/>
+              </hashTree>
+              <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="T02_PlanOptions_page">
+                <stringProp name="HTTPSampler.path">/our-policies/comprehensive?step=plan-options</stringProp>
+                <boolProp name="HTTPSampler.follow_redirects">true</boolProp>
+                <stringProp name="HTTPSampler.method">GET</stringProp>
+                <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
+                <boolProp name="HTTPSampler.postBodyRaw">false</boolProp>
+                <elementProp name="HTTPsampler.Arguments" elementType="Arguments" guiclass="HTTPArgumentsPanel" testclass="Arguments" testname="User Defined Variables">
+                  <collectionProp name="Arguments.arguments"/>
+                </elementProp>
+              </HTTPSamplerProxy>
+              <hashTree>
+                <HeaderManager guiclass="HeaderPanel" testclass="HeaderManager" testname="Page headers" enabled="true">
+                  <collectionProp name="HeaderManager.headers">
+                    <elementProp name="" elementType="Header">
+                      <stringProp name="Header.name">Accept</stringProp>
+                      <stringProp name="Header.value">text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8</stringProp>
+                    </elementProp>
+                    <elementProp name="" elementType="Header">
+                      <stringProp name="Header.name">Referer</stringProp>
+                      <stringProp name="Header.value">https://${HOST}/</stringProp>
+                    </elementProp>
+                  </collectionProp>
+                </HeaderManager>
+                <hashTree/>
+                <ResponseAssertion guiclass="AssertionGui" testclass="ResponseAssertion" testname="Is the SCTI page" enabled="true">
+                  <collectionProp name="Asserion.test_strings">
+                    <stringProp name="2539717">SCTI</stringProp>
+                  </collectionProp>
+                  <stringProp name="Assertion.custom_message">Not the SCTI page (blocked or a challenge page?)</stringProp>
+                  <stringProp name="Assertion.test_field">Assertion.response_data</stringProp>
+                  <boolProp name="Assertion.assume_success">false</boolProp>
+                  <intProp name="Assertion.test_type">16</intProp>
+                </ResponseAssertion>
+                <hashTree/>
+              </hashTree>
+            </hashTree>
+            <TestAction guiclass="TestActionGui" testclass="TestAction" testname="Think: compare plans" enabled="true">
+              <intProp name="ActionProcessor.action">1</intProp>
+              <intProp name="ActionProcessor.target">0</intProp>
+              <stringProp name="ActionProcessor.duration">${THINK_PLANS_MS}</stringProp>
+            </TestAction>
+            <hashTree/>
+            <IfController guiclass="IfControllerPanel" testclass="IfController" testname="Customises the plan? (50%)">
+              <stringProp name="IfController.condition">${__jexl3(${funnel} &gt; ${CUSTOMISE_ABOVE})}</stringProp>
+              <boolProp name="IfController.evaluateAll">false</boolProp>
+              <boolProp name="IfController.useExpression">true</boolProp>
+            </IfController>
+            <hashTree>
+              <HeaderManager guiclass="HeaderPanel" testclass="HeaderManager" testname="API headers" enabled="true">
+                <collectionProp name="HeaderManager.headers">
+                  <elementProp name="" elementType="Header">
+                    <stringProp name="Header.name">Content-Type</stringProp>
+                    <stringProp name="Header.value">application/json</stringProp>
+                  </elementProp>
+                  <elementProp name="" elementType="Header">
+                    <stringProp name="Header.name">Accept</stringProp>
+                    <stringProp name="Header.value">*/*</stringProp>
+                  </elementProp>
+                  <elementProp name="" elementType="Header">
+                    <stringProp name="Header.name">Origin</stringProp>
+                    <stringProp name="Header.value">https://${HOST}</stringProp>
+                  </elementProp>
+                  <elementProp name="" elementType="Header">
+                    <stringProp name="Header.name">Referer</stringProp>
+                    <stringProp name="Header.value">https://${HOST}/our-policies/comprehensive?step=plan-options</stringProp>
+                  </elementProp>
+                </collectionProp>
+              </HeaderManager>
+              <hashTree/>
+              <JSONPathAssertion guiclass="JSONPathAssertionGui" testclass="JSONPathAssertion" testname="Same quote, priced">
+                <stringProp name="JSON_PATH">$.QuoteId</stringProp>
+                <stringProp name="EXPECTED_VALUE">${quoteId}</stringProp>
+                <boolProp name="JSONVALIDATION">true</boolProp>
+                <boolProp name="EXPECT_NULL">false</boolProp>
+                <boolProp name="INVERT">false</boolProp>
+                <boolProp name="ISREGEX">false</boolProp>
+              </JSONPathAssertion>
+              <hashTree/>
+              <JSR223PreProcessor guiclass="TestBeanGUI" testclass="JSR223PreProcessor" testname="Extra cover flags" enabled="true">
+                <stringProp name="scriptLanguage">groovy</stringProp>
+                <stringProp name="parameters"></stringProp>
+                <stringProp name="filename"></stringProp>
+                <stringProp name="cacheKey">true</stringProp>
+                <stringProp name="script">def extra = vars.get(&apos;extra&apos;)
+vars.put(&apos;skiCover&apos;, String.valueOf(extra == &apos;Ski&apos;))
+vars.put(&apos;cruiseCover&apos;, String.valueOf(extra == &apos;Cruise&apos;))
+vars.put(&apos;mopedCover&apos;, String.valueOf(extra == &apos;Moped&apos;))</stringProp>
+              </JSR223PreProcessor>
+              <hashTree/>
+              <TestAction guiclass="TestActionGui" testclass="TestAction" testname="Think: choose discount" enabled="true">
+                <intProp name="ActionProcessor.action">1</intProp>
+                <intProp name="ActionProcessor.target">0</intProp>
+                <stringProp name="ActionProcessor.duration">${THINK_CHANGE_MS}</stringProp>
+              </TestAction>
+              <hashTree/>
+              <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="T03_UpdateExtras" enabled="true">
+                <stringProp name="TestPlan.comments">1 of 4: discount</stringProp>
+                <stringProp name="HTTPSampler.path">/api/Quotes/extras</stringProp>
+                <stringProp name="HTTPSampler.method">PUT</stringProp>
+                <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
+                <boolProp name="HTTPSampler.postBodyRaw">true</boolProp>
+                <elementProp name="HTTPsampler.Arguments" elementType="Arguments">
+                  <collectionProp name="Arguments.arguments">
+                    <elementProp name="" elementType="HTTPArgument">
+                      <boolProp name="HTTPArgument.always_encode">false</boolProp>
+                      <stringProp name="Argument.value">{&quot;QuoteId&quot;:&quot;${quoteId}&quot;,&quot;PolicyNumber&quot;:&quot;${policyNumber}&quot;,&quot;Excess&quot;:&quot;${defaultExcess}&quot;,&quot;CancellationCover&quot;:&quot;${defaultCancellation}&quot;,&quot;ProductCode&quot;:&quot;ST&quot;,&quot;SchsDiscount&quot;:${discount},&quot;MopedCover&quot;:false,&quot;CruiseCover&quot;:false,&quot;SkiCover&quot;:false}</stringProp>
+                      <stringProp name="Argument.metadata">=</stringProp>
+                    </elementProp>
+                  </collectionProp>
+                </elementProp>
+              </HTTPSamplerProxy>
+              <hashTree/>
+              <TestAction guiclass="TestActionGui" testclass="TestAction" testname="Think: choose excess" enabled="true">
+                <intProp name="ActionProcessor.action">1</intProp>
+                <intProp name="ActionProcessor.target">0</intProp>
+                <stringProp name="ActionProcessor.duration">${THINK_CHANGE_MS}</stringProp>
+              </TestAction>
+              <hashTree/>
+              <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="T03_UpdateExtras" enabled="true">
+                <stringProp name="TestPlan.comments">2 of 4: excess</stringProp>
+                <stringProp name="HTTPSampler.path">/api/Quotes/extras</stringProp>
+                <stringProp name="HTTPSampler.method">PUT</stringProp>
+                <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
+                <boolProp name="HTTPSampler.postBodyRaw">true</boolProp>
+                <elementProp name="HTTPsampler.Arguments" elementType="Arguments">
+                  <collectionProp name="Arguments.arguments">
+                    <elementProp name="" elementType="HTTPArgument">
+                      <boolProp name="HTTPArgument.always_encode">false</boolProp>
+                      <stringProp name="Argument.value">{&quot;QuoteId&quot;:&quot;${quoteId}&quot;,&quot;PolicyNumber&quot;:&quot;${policyNumber}&quot;,&quot;Excess&quot;:&quot;${excess}&quot;,&quot;CancellationCover&quot;:&quot;${defaultCancellation}&quot;,&quot;ProductCode&quot;:&quot;ST&quot;,&quot;SchsDiscount&quot;:${discount},&quot;MopedCover&quot;:false,&quot;CruiseCover&quot;:false,&quot;SkiCover&quot;:false}</stringProp>
+                      <stringProp name="Argument.metadata">=</stringProp>
+                    </elementProp>
+                  </collectionProp>
+                </elementProp>
+              </HTTPSamplerProxy>
+              <hashTree/>
+              <TestAction guiclass="TestActionGui" testclass="TestAction" testname="Think: choose cancellation cover" enabled="true">
+                <intProp name="ActionProcessor.action">1</intProp>
+                <intProp name="ActionProcessor.target">0</intProp>
+                <stringProp name="ActionProcessor.duration">${THINK_CHANGE_MS}</stringProp>
+              </TestAction>
+              <hashTree/>
+              <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="T03_UpdateExtras" enabled="true">
+                <stringProp name="TestPlan.comments">3 of 4: cancellation cover</stringProp>
+                <stringProp name="HTTPSampler.path">/api/Quotes/extras</stringProp>
+                <stringProp name="HTTPSampler.method">PUT</stringProp>
+                <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
+                <boolProp name="HTTPSampler.postBodyRaw">true</boolProp>
+                <elementProp name="HTTPsampler.Arguments" elementType="Arguments">
+                  <collectionProp name="Arguments.arguments">
+                    <elementProp name="" elementType="HTTPArgument">
+                      <boolProp name="HTTPArgument.always_encode">false</boolProp>
+                      <stringProp name="Argument.value">{&quot;QuoteId&quot;:&quot;${quoteId}&quot;,&quot;PolicyNumber&quot;:&quot;${policyNumber}&quot;,&quot;Excess&quot;:&quot;${excess}&quot;,&quot;CancellationCover&quot;:&quot;${cancellation}&quot;,&quot;ProductCode&quot;:&quot;ST&quot;,&quot;SchsDiscount&quot;:${discount},&quot;MopedCover&quot;:false,&quot;CruiseCover&quot;:false,&quot;SkiCover&quot;:false}</stringProp>
+                      <stringProp name="Argument.metadata">=</stringProp>
+                    </elementProp>
+                  </collectionProp>
+                </elementProp>
+              </HTTPSamplerProxy>
+              <hashTree/>
+              <TestAction guiclass="TestActionGui" testclass="TestAction" testname="Think: choose extra cover" enabled="true">
+                <intProp name="ActionProcessor.action">1</intProp>
+                <intProp name="ActionProcessor.target">0</intProp>
+                <stringProp name="ActionProcessor.duration">${THINK_CHANGE_MS}</stringProp>
+              </TestAction>
+              <hashTree/>
+              <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="T03_UpdateExtras" enabled="true">
+                <stringProp name="TestPlan.comments">4 of 4: extra cover</stringProp>
+                <stringProp name="HTTPSampler.path">/api/Quotes/extras</stringProp>
+                <stringProp name="HTTPSampler.method">PUT</stringProp>
+                <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
+                <boolProp name="HTTPSampler.postBodyRaw">true</boolProp>
+                <elementProp name="HTTPsampler.Arguments" elementType="Arguments">
+                  <collectionProp name="Arguments.arguments">
+                    <elementProp name="" elementType="HTTPArgument">
+                      <boolProp name="HTTPArgument.always_encode">false</boolProp>
+                      <stringProp name="Argument.value">{&quot;QuoteId&quot;:&quot;${quoteId}&quot;,&quot;PolicyNumber&quot;:&quot;${policyNumber}&quot;,&quot;Excess&quot;:&quot;${excess}&quot;,&quot;CancellationCover&quot;:&quot;${cancellation}&quot;,&quot;ProductCode&quot;:&quot;ST&quot;,&quot;SchsDiscount&quot;:${discount},&quot;MopedCover&quot;:${mopedCover},&quot;CruiseCover&quot;:${cruiseCover},&quot;SkiCover&quot;:${skiCover}}</stringProp>
+                      <stringProp name="Argument.metadata">=</stringProp>
+                    </elementProp>
+                  </collectionProp>
+                </elementProp>
+              </HTTPSamplerProxy>
+              <hashTree/>
+              <IfController guiclass="IfControllerPanel" testclass="IfController" testname="Goes on to traveller details? (30%)" enabled="true">
+                <stringProp name="IfController.condition">${__jexl3(${funnel} &gt; ${SELECT_ABOVE})}</stringProp>
+                <boolProp name="IfController.evaluateAll">false</boolProp>
+                <boolProp name="IfController.useExpression">true</boolProp>
+              </IfController>
+              <hashTree>
+                <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="T04_SelectPlan" enabled="true">
+                  <stringProp name="HTTPSampler.path">/api/Quotes/select</stringProp>
+                  <stringProp name="HTTPSampler.method">PUT</stringProp>
+                  <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
+                  <boolProp name="HTTPSampler.postBodyRaw">true</boolProp>
+                  <elementProp name="HTTPsampler.Arguments" elementType="Arguments">
+                    <collectionProp name="Arguments.arguments">
+                      <elementProp name="" elementType="HTTPArgument">
+                        <boolProp name="HTTPArgument.always_encode">false</boolProp>
+                        <stringProp name="Argument.value">{&quot;ProductCode&quot;:&quot;ST&quot;,&quot;QuoteId&quot;:&quot;${quoteId}&quot;,&quot;PolicyNumber&quot;:&quot;${policyNumber}&quot;,&quot;Excess&quot;:&quot;${excess}&quot;,&quot;CancellationCover&quot;:&quot;${cancellation}&quot;,&quot;IsSchsMember&quot;:${discount},&quot;MopedCover&quot;:${mopedCover},&quot;CruiseCover&quot;:${cruiseCover},&quot;SkiCover&quot;:${skiCover}}</stringProp>
+                        <stringProp name="Argument.metadata">=</stringProp>
+                      </elementProp>
+                    </collectionProp>
+                  </elementProp>
+                </HTTPSamplerProxy>
+                <hashTree/>
+                <TestAction guiclass="TestActionGui" testclass="TestAction" testname="Think: eligibility, declarations and traveller forms" enabled="true">
+                  <intProp name="ActionProcessor.action">1</intProp>
+                  <intProp name="ActionProcessor.target">0</intProp>
+                  <stringProp name="ActionProcessor.duration">${THINK_TRAVELLERS_MS}</stringProp>
+                </TestAction>
+                <hashTree/>
+              </hashTree>
+            </hashTree>
+          </hashTree>
+        </hashTree>
+      </hashTree>
+      <ResultCollector guiclass="ViewResultsFullVisualizer" testclass="ResultCollector" testname="View Results Tree (debugging only)">
+        <boolProp name="ResultCollector.error_logging">false</boolProp>
+        <objProp>
+          <name>saveConfig</name>
+          <value class="SampleSaveConfiguration">
+            <time>true</time>
+            <latency>true</latency>
+            <timestamp>true</timestamp>
+            <success>true</success>
+            <label>true</label>
+            <code>true</code>
+            <message>true</message>
+            <threadName>true</threadName>
+            <dataType>true</dataType>
+            <encoding>false</encoding>
+            <assertions>true</assertions>
+            <subresults>true</subresults>
+            <responseData>false</responseData>
+            <samplerData>false</samplerData>
+            <xml>false</xml>
+            <fieldNames>true</fieldNames>
+            <responseHeaders>false</responseHeaders>
+            <requestHeaders>false</requestHeaders>
+            <responseDataOnError>false</responseDataOnError>
+            <saveAssertionResultsFailureMessage>true</saveAssertionResultsFailureMessage>
+            <assertionsResultsToSave>0</assertionsResultsToSave>
+            <bytes>true</bytes>
+            <sentBytes>true</sentBytes>
+            <url>true</url>
+            <threadCounts>true</threadCounts>
+            <idleTime>true</idleTime>
+            <connectTime>true</connectTime>
+          </value>
+        </objProp>
+        <stringProp name="filename"></stringProp>
+      </ResultCollector>
+      <hashTree/>
+    </hashTree>
+  </hashTree>
+</jmeterTestPlan>

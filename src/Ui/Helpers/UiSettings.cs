@@ -13,6 +13,9 @@ public static class UiSettings
     // Playwright engine: chromium, firefox or webkit.
     public static string Browser => (ConfigurationHelper.Configuration["Browser"] ?? "chromium").ToLowerInvariant();
 
+    // Absolute folder for a HAR of every request and response per UI scenario; unset means no HAR.
+    public static string? RecordHarDir => ConfigurationHelper.Configuration["RecordHarDir"];
+
     private static string Required(string key) =>
         ConfigurationHelper.Configuration[key]
         ?? throw new InvalidOperationException($"'{key}' is missing from the appsettings files.");
