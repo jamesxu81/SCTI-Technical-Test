@@ -4,9 +4,10 @@ namespace TechnicalTest.Ui.Helpers;
 
 public static class ConfigurationHelper
 {
-    private static IConfiguration? _configuration;
+    // Lazy keeps the build to one thread when parallel tests read settings at the same time.
+    private static readonly Lazy<IConfiguration> LazyConfiguration = new(Build);
 
-    public static IConfiguration Configuration => _configuration ??= Build();
+    public static IConfiguration Configuration => LazyConfiguration.Value;
 
     private static IConfiguration Build()
     {

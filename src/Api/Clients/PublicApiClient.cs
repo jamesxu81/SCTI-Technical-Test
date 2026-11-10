@@ -19,7 +19,7 @@ public class PublicApiClient : IPublicApiClient
 
     public async Task<List<Post>> GetPostsAsync()
     {
-        var response = await _http.GetAsync("posts");
+        using var response = await _http.GetAsync("posts");
         response.EnsureSuccessStatusCode();
         string content = await response.Content.ReadAsStringAsync();
         return JsonSerializer.Deserialize<List<Post>>(content, JsonOptions)!;
@@ -27,7 +27,7 @@ public class PublicApiClient : IPublicApiClient
 
     public async Task<Post?> GetPostAsync(int id)
     {
-        var response = await _http.GetAsync($"posts/{id}");
+        using var response = await _http.GetAsync($"posts/{id}");
         if (!response.IsSuccessStatusCode) return null;
 
         string content = await response.Content.ReadAsStringAsync();
@@ -36,8 +36,8 @@ public class PublicApiClient : IPublicApiClient
 
     public async Task<Post> CreatePostAsync(Post newPost)
     {
-        var body = new StringContent(JsonSerializer.Serialize(newPost, JsonOptions), Encoding.UTF8, "application/json");
-        var response = await _http.PostAsync("posts", body);
+        using var body = new StringContent(JsonSerializer.Serialize(newPost, JsonOptions), Encoding.UTF8, "application/json");
+        using var response = await _http.PostAsync("posts", body);
         response.EnsureSuccessStatusCode();
 
         string resp = await response.Content.ReadAsStringAsync();

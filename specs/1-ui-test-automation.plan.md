@@ -55,7 +55,7 @@ draft quote in production (four per full run, more if a scenario is retried).
 | Error handling and detailed logging | Full-page screenshot on failure; network log for every scenario; both attached to the Reqnroll output and saved to `TestResults/ui/` in the test output folder. First-party API calls with bodies are also written to the test output. TRX or HTML via `dotnet test --logger`. Failed scenarios are retried (2 attempts in total, `NRetrySettings` in `reqnroll.json`) |
 | Test data management | Examples tables, relative dates (`today+30`) and age-based dates of birth (`age:40`) resolved by step argument transformations, section 2 |
 | Technologies | .NET 8, Microsoft.Playwright 1.64.1, Reqnroll 2.4.1 with NUnit 4.0.1, NUnitRetry.ReqnrollPlugin 2.0.4, FluentAssertions for non-UI values (network bodies, price sums), Microsoft.Extensions.Configuration. Moq and JSONPlaceholder are not used by the UI tests. |
-| Clean code, SOLID, DRY | `TestData` and `StepArgumentTransformations` for dates, ages and traveller lists; `UiFormat` for dates and money; one `NetworkRecorder` and the page objects injected through Reqnroll context injection; `QuoteState` shares values between steps; API paths in `QuoteApi` |
+| Clean code, SOLID, DRY | `TestData` and `StepArgumentTransformations` for dates, ages and traveller lists; `UiFormat` for dates and money; one `NetworkRecorder` and the page objects injected through Reqnroll context injection; `QuoteState` shares values between steps; API paths defined once in `QuoteApi` (`src/Ui/Helpers`), used by page objects and tests |
 
 ## 2. Test data rules
 
@@ -174,11 +174,11 @@ Locator notes that apply throughout:
 
 | Element | Locator (C#) | Page-object member | Wait / notes |
 |---|---|---|---|
-| Page loaded | `Page.WaitForURLAsync(new Regex("step=plan-options"))`, then `button#ST` | `WaitForLoadAsync()` | After POST `/api/Quotes/create`. The step also asserts the URL with `Expect(Page).ToHaveURLAsync`. Page title starts "Comprehensive insurance". |
+| Page loaded | `Page.WaitForURLAsync(Url)` (`step=plan-options`), then `button#ST` | `WaitForLoadAsync()`, `ExpectOpenAsync()` | After POST `/api/Quotes/create`. The URL pattern lives only in the page object; steps call `ExpectOpenAsync()`. Page title starts "Comprehensive insurance". |
 | Trip summary fields | Same three textboxes as 3.1 | - | Destinations are re-sorted alphabetically here: `Australia, Japan`. |
 | Update plan options | `Page.GetByRole(AriaRole.Button, new() { Name = "Update plan options" })` | - | Not used. Re-quotes after the trip summary changes. |
 | Back | `Page.GetByRole(AriaRole.Button, new() { Name = "Back" })` | - | Not used. |
-| Plan names | `Page.GetByText(name, new() { Exact = true }).Locator("visible=true").First` | `PlanName(name)`, constant `OneReturnJourneyPlan` | "International Comprehensive Single Trip" and "International Medical Only" (card labels "One return journey" and "Medical only"). The names are repeated in hidden markup, so only the visible one counts. |
+| Plan names | `Page.GetByText(name, new() { Exact = true }).Locator("visible=true").First` | `PlanName(name)`, constants `OneReturnJourneyPlan`, `MedicalOnlyPlan` | "International Comprehensive Single Trip" and "International Medical Only" (card labels "One return journey" and "Medical only"). The names are repeated in hidden markup, so only the visible one counts. |
 | Plan price | `Page.GetByText(OneReturnJourneyPlan, new() { Exact = true }).Locator("..").GetByText(Amount).Locator("visible=true")` | `GetPlanPriceAsync()` | e.g. `$279.03` before customising. No id; the price pattern next to the plan name. After customising, a sticky summary repeats the name without a price, so it doesn't match. |
 | Select and customise plan | `Page.Locator("button#ST")` | `SelectPlanButton`, `SelectPlanAsync()` | The id is the product code (`ST` single trip, `MO` medical only), the same `ProductCode` the API sends. By role and name, two buttons match. |
 
@@ -199,8 +199,8 @@ Locator notes that apply throughout:
 
 | Element | Locator (C#) | Page-object member | Wait / notes |
 |---|---|---|---|
-| Page loaded | `Expect(Page).ToHaveURLAsync(new Regex("step=traveller-details"))` | - | Asserted by the step. Heading text "Traveller details". |
-| Q1 citizens or residents, eligible for public health, returning to NZ | `RadioGroup("CitizenOrLivingInNZ").GetByText("Yes", new() { Exact = true })`, state `[id='CitizenOrLivingInNZ-yes']` | `EligibilityQuestion(name)`, `CompleteTravellerEligibilityAsync()`, `AnswerEligibilityQuestionAsync(name, answer)` | "No" shows the ineligibility message. |
+| Page loaded | `Expect(Page).ToHaveURLAsync(Url)` (`step=traveller-details`) | `ExpectOpenAsync()` | Called by the steps. Heading text "Traveller details". |
+| Q1 citizens or residents, eligible for public health, returning to NZ | `RadioGroup("CitizenOrLivingInNZ").GetByText("Yes", new() { Exact = true })`, state `[id='CitizenOrLivingInNZ-yes']` | `EligibilityQuestions` (all three), `CompleteTravellerEligibilityAsync()`, `AnswerResidencyQuestionAsync(answer)` | "No" shows the ineligibility message. The three question names are private constants of the page object. |
 | Q2 already left NZ | `RadioGroup("JourneyStarted NZ")`, state `[id='JourneyStarted NZ-no']` | `CompleteTravellerEligibilityAsync()` | The name and id contain a space. |
 | Q3 cover refused, claim declined or policy voided for fraud | `RadioGroup("Fraud NZ")`, state `[id='Fraud NZ-no']` | `CompleteTravellerEligibilityAsync()` | |
 | Ineligibility message | `Message("Sorry, you don't appear to meet our minimum eligibility criteria for this type of travel insurance.")` | `Message(text)` | Shown as soon as Q1 is "No". |
@@ -219,12 +219,12 @@ Locator notes that apply throughout:
 |---|---|---|---|
 | Traveller headings | e.g. `Page.GetByText("Main policyholder - Adult 1, aged 40", new() { Exact = true })`, `"Dependent child 1, aged 10"`, `"Non-dependent child 1, aged 12"` | `TravellerHeading(text)` | The section appears only after eligibility and declarations are completed. Text is built from the quote ages. |
 | Traveller forms | `Page.Locator("[id$='].firstName']")` | `TravellerForms` | One per traveller; used for counts. |
-| Traveller fields | `Page.Locator("[id='travellers[0].firstName']")`, pattern `travellers[{index}].{field}` with fields `title`, `firstName`, `lastName`, `dob`, `mobilePhone`, `emailAddress`, `streetAddress`, `suburb`, `city`, `postcode` | `TravellerField(index, field)`, `AddTravellerAsync(type, first, last, dob)` | Labels such as "First name *" repeat for every traveller, so role and label locators are ambiguous. Index 0 is the policyholder, then travellers in quote order. `AddTravellerAsync` fills the first empty form of the requested type (index 0 is always the adult policyholder) and returns its index. Children only have `firstName`, `lastName`, `dob`. |
+| Traveller fields | `Page.Locator("[id='travellers[0].firstName']")`, pattern `travellers[{index}].{field}` with fields `title`, `firstName`, `lastName`, `dob`, `mobilePhone`, `emailAddress`, `streetAddress`, `suburb`, `city`, `postcode` | `TravellerField(index, TravellerFieldName)`, `AddTravellerAsync(type, first, last, dob)` | Labels such as "First name *" repeat for every traveller, so role and label locators are ambiguous. The `TravellerFieldName` enum (`src/Ui/Models`) maps to these ids inside the page object, so steps never use the ids. Index 0 is the policyholder, then travellers in quote order. `AddTravellerAsync` fills the first empty form of the requested type (index 0 is always the adult policyholder) and returns its index. Children only have `firstName`, `lastName`, `dob`. |
 | Title | Click `[id='travellers[0].title']`, then `Page.GetByRole(AriaRole.Button, new() { Name = "Mx.", Exact = true })` | - | Not used. Custom dropdown; the options are buttons. |
-| Date of birth | `TravellerField(index, "dob")`, `FillAsync("dd/MM/yyyy")`, then press Tab | `EnterDateOfBirthAsync(index, date)` | Focus opens a calendar; Tab closes it. A wrong age shows the mismatch message below. |
+| Date of birth | `TravellerField(index, TravellerFieldName.DateOfBirth)`, `FillAsync("dd/MM/yyyy")`, then press Tab | `EnterDateOfBirthAsync(index, date)` | Focus opens a calendar; Tab closes it. A wrong age shows the mismatch message below. |
 | Date of birth mismatch | `Message("Entered age and date of birth do not match.")`, buttons "Re-enter" and "Update quote" | `DateOfBirthPromptButton(name)`, `ChooseDateOfBirthPromptOptionAsync(name)` | Prompt "Date of birth changed". "Re-enter" keeps the price and reopens the calendar. "Update quote" re-prices (not used). Not shown in Firefox (section 7). |
-| Mobile phone, email | `TravellerField(0, "mobilePhone")`, `TravellerField(0, "emailAddress")` | `FillPolicyholderContactAsync(email, mobile, address)` | |
-| Street address | `TravellerField(0, "streetAddress")`, `PressSequentiallyAsync("1 Queen Street")`, then `Page.GetByRole(AriaRole.Button, new() { Name = "1 Queen Street, Auckland CBD, Auckland, New Zealand", Exact = true })` | `FillPolicyholderContactAsync()` | Suggestions come from Google Places, which loads after the travellers section appears, so the page object first waits for `window.google.maps.places`. Choosing one fills suburb, city and postcode; it then asserts the postcode isn't empty. |
+| Mobile phone, email | `TravellerField(0, TravellerFieldName.MobilePhone)`, `TravellerField(0, TravellerFieldName.EmailAddress)` | `FillPolicyholderContactAsync(email, mobile, address)` | |
+| Street address | `TravellerField(0, TravellerFieldName.StreetAddress)`, `PressSequentiallyAsync("1 Queen Street")`, then `Page.GetByRole(AriaRole.Button, new() { Name = "1 Queen Street, Auckland CBD, Auckland, New Zealand", Exact = true })` | `FillPolicyholderContactAsync()` | Suggestions come from Google Places, which loads after the travellers section appears, so the page object first waits for `window.google.maps.places`. Choosing one fills suburb, city and postcode; it then asserts the postcode isn't empty. |
 | Traveller type | Radio `[id='travellers[{index}].type.DependentChild']` (also `.Adult`, `.NonDependentChild`); click the `label` that contains it | `SetTravellerTypeAsync(index, type)` | Pre-selected from the quote. Asserts the radio is checked. A change re-renders the block: heading and fields change (adults have title, phone, email and an address choice; children only names and date of birth). |
 | Add traveller | `Page.GetByRole(AriaRole.Button, new() { Name = "Add traveller" })` | `AddAnotherTravellerAsync()` | Adds a block headed "Adult N" with the address choice "Same as main policyholder" or "Search for an address". Waits for the new `firstName` field and returns the new index. |
 | Remove traveller | `Page.GetByText("Remove", new() { Exact = true }).Nth(index - 1)` | `RemoveTravellerAsync(index)` | A link-like element without a role. The policyholder has no Remove link, so link n belongs to traveller n + 1. Removes at once, no confirmation; waits for the form to detach. Premium unchanged. |
@@ -236,7 +236,7 @@ scenario and records method, URL, status and request body. For first-party `/api
 reads the response body. After each scenario the hooks write the full list to
 `TestResults/ui/<scenario>-<id>.network.log` (bodies only for first-party API calls, pretty-printed JSON), attach it
 to the Reqnroll output, and write the first-party calls with bodies to the test output. Steps assert only first-party
-calls, by status and request body (parsed with `JsonDocument`); paths are in `QuoteApi`. `BasePage.RunAndWaitForApiResponseAsync()`
+calls, by status and request body (parsed with `JsonDocument`); paths are in `QuoteApi` (`src/Ui/Helpers`, shared with the page objects). `BasePage.RunAndWaitForApiResponseAsync()`
 wraps an action and waits for a given API response.
 
 | Trigger | Method | URL pattern | Expected status | Assert? |
@@ -441,23 +441,23 @@ values (dates, travellers, prices, the added traveller's index) through `QuoteSt
 | `I add travel dates "(.*)" and "(.*)"` | Main | `FillTravelDatesAsync(departure, return)`, asserts `TravelDatesInput` value |
 | `I add "(.*)" travellers` | Main | `FillTravellersAsync(travellers)`, asserts `TravellersInput` is "N Travellers" |
 | `I click Get plan options` | Main | `ClickGetPlanOptionsAsync()`: clicks "Get a quote" |
-| `I should see plan options available` | Main | `PlanOptionsPage.WaitForLoadAsync()`, `PlanName(name)`, `SelectPlanButton`, `GetPlanPriceAsync()` (records the base price) |
+| `I should see plan options available` | Main | `PlanOptionsPage.WaitForLoadAsync()`, `ExpectOpenAsync()`, `PlanName(name)`, `SelectPlanButton`, `GetPlanPriceAsync()` (records the base price) |
 | `the quote request should contain destinations "(.*)" and travellers "(.*)"` | Main | none: `NetworkRecorder.ApiCalls("POST", QuoteApi.Create)` |
 | `I select a plan and customise it` | Main | `SelectPlanAsync()` |
 | `I choose discount "(.*)", excess "(.*)", cancellation cover "(.*)", and extra cover "(.*)"` | Main | `CustomisePlanAsync(discount, excess, cancellationCover, covers)`; "None" means no extra cover |
 | `the plan price should equal the base price plus the premium changes` | Main | `GetPlanPriceAsync()`, `GetDiscountAsync()`, `GetPremiumChangesAsync()` (records the customised price) |
 | `the latest plan update request should contain discount "(.*)", excess "(.*)", cancellation cover "(.*)" and extra cover "(.*)"` | Main | none: `NetworkRecorder.ApiCalls("PUT", QuoteApi.Extras)` |
 | `I click Next to Traveller details` | Main | `ClickNextToTravellerDetailsAsync()`, then records `TravellerDetailsPage.TotalPremium` |
-| `I should see traveller eligibility section` | Main | `EligibilityQuestion(name)` for the three questions, plus the URL |
+| `I should see traveller eligibility section` | Main | `ExpectOpenAsync()`, `EligibilityQuestions` |
 | `I complete traveller eligibility and privacy declaration` | Main | `CompleteTravellerEligibilityAsync()` |
 | `I add adult traveller with firstname "(.*)", lastname "(.*)", and DOB "(.*)"` | Main | `AddTravellerAsync(TravellerType.Adult, ...)` |
 | `I enter contact details for the main policyholder with email "(.*)", mobile "(.*)" and address "(.*)"` | Main | `FillPolicyholderContactAsync(email, mobile, address)` |
 | `I add dependent traveller with firstname "(.*)", lastname "(.*)", and DOB "(.*)"` | Main | `AddTravellerAsync(TravellerType.DependentChild, ...)` |
 | `I add non-dependent traveller with firstname "(.*)", lastname "(.*)", and DOB "(.*)"` | Main | `AddTravellerAsync(TravellerType.NonDependentChild, ...)` |
-| `I should see all travellers added successfully` | Main | `TravellerForms`, `TravellerHeading(text)`, `TravellerField(index, field)`, `Message(text)`, `TotalPremium`; `NetworkRecorder` for `/api/Quotes/select` and later calls |
+| `I should see all travellers added successfully` | Main | `ExpectOpenAsync()`, `TravellerForms`, `TravellerHeading(text)`, `TravellerField(index, TravellerFieldName)`, `Message(text)`, `TotalPremium`; `NetworkRecorder` for `/api/Quotes/select` and later calls |
 | `I have a quote for "(.*)" from "(.*)" to "(.*)" for "(.*)"` | Validation | `SelectJourneyAsync`, `FillDestinationsAsync`, `FillTravelDatesAsync`, `FillTravellersAsync`, `ClickGetPlanOptionsAsync`, `WaitForLoadAsync` |
 | `I should see the quote form error "(.*)"` | Validation | `QuoteFormPage.Message(text)` |
-| `no quote should be requested` | Validation | none: URL equals `BaseUrl`, `NetworkRecorder` has no create call |
+| `no quote should be requested` | Validation | `QuoteFormPage.ExpectOpenAsync()` (URL is `BaseUrl`); `NetworkRecorder` has no create call |
 | `I try to add "(.*)" travellers` | Validation | `EnterTravellersAsync(travellers)`: clicks Done without waiting for the dialog to close |
 | `I should see the traveller error "(.*)"` | Validation | `TravellersError(text)` |
 | `the travellers selector should stay open` | Validation | `TravellersDialog` |
@@ -467,8 +467,8 @@ values (dates, travellers, prices, the added traveller's index) through `QuoteSt
 | `the travel dates should be "(.*)" to "(.*)"` | Validation | `TravelDatesInput` |
 | `I continue without answering the eligibility questions or declarations` | Validation | `TryContinueToHighValueItemsAsync()` |
 | `I should see (\d+) "(.*)" messages` | Validation | `TravellerDetailsPage.Message(text)` count |
-| `I should still be on the traveller details step` | Validation | none: URL check |
-| `I answer "(.*)" to whether all travellers are New Zealand residents` | Validation | `AnswerEligibilityQuestionAsync("CitizenOrLivingInNZ", answer)` |
+| `I should still be on the traveller details step` | Validation | `TravellerDetailsPage.ExpectOpenAsync()` |
+| `I answer "(.*)" to whether all travellers are New Zealand residents` | Validation | `AnswerResidencyQuestionAsync(answer)` |
 | `I should see the eligibility message "(.*)"` | Validation | `Message(text)` |
 | `I enter date of birth "(.*)" for the main policyholder` | Validation | `EnterDateOfBirthAsync(0, date)` |
 | `I should see the date of birth error "(.*)"` | Validation | `Message(text)` |
@@ -478,7 +478,7 @@ values (dates, travellers, prices, the added traveller's index) through `QuoteSt
 | `I add another traveller` | Validation | `AddAnotherTravellerAsync()` (records the new index) |
 | `I should see a traveller form headed "(.*)"` | Validation | `TravellerHeading(text)` |
 | `I change the new traveller's type to "(.*)"` | Validation | `SetTravellerTypeAsync(index, type)` |
-| `the "(.*)" form should only ask for first name, last name and date of birth` | Validation | `TravellerHeading(text)`, `TravellerField(index, field)` |
+| `the "(.*)" form should only ask for first name, last name and date of birth` | Validation | `TravellerHeading(text)`, `TravellerField(index, TravellerFieldName)` |
 | `I remove the new traveller` | Validation | `RemoveTravellerAsync(index)` |
 | `I should see (\d+) traveller forms` | Validation | `TravellerForms` count |
 

@@ -1,6 +1,4 @@
-using System.Text.RegularExpressions;
 using FluentAssertions;
-using Microsoft.Playwright;
 using Reqnroll;
 using TechnicalTest.Tests.Support;
 using TechnicalTest.Ui.Helpers;
@@ -16,7 +14,6 @@ public class InsuranceBookingValidationSteps
     private readonly QuoteFormPage _quoteForm;
     private readonly PlanOptionsPage _planOptions;
     private readonly TravellerDetailsPage _travellerDetails;
-    private readonly IPage _page;
     private readonly NetworkRecorder _network;
     private readonly QuoteState _quote;
 
@@ -24,14 +21,12 @@ public class InsuranceBookingValidationSteps
         QuoteFormPage quoteForm,
         PlanOptionsPage planOptions,
         TravellerDetailsPage travellerDetails,
-        IPage page,
         NetworkRecorder network,
         QuoteState quote)
     {
         _quoteForm = quoteForm;
         _planOptions = planOptions;
         _travellerDetails = travellerDetails;
-        _page = page;
         _network = network;
         _quote = quote;
     }
@@ -61,7 +56,7 @@ public class InsuranceBookingValidationSteps
     [Then(@"no quote should be requested")]
     public async Task ThenNoQuoteShouldBeRequested()
     {
-        await Expect(_page).ToHaveURLAsync(UiSettings.BaseUrl);
+        await _quoteForm.ExpectOpenAsync();
         _network.ApiCalls("POST", QuoteApi.Create).Should().BeEmpty();
     }
 
@@ -123,13 +118,13 @@ public class InsuranceBookingValidationSteps
     [Then(@"I should still be on the traveller details step")]
     public async Task ThenIShouldStillBeOnTheTravellerDetailsStep()
     {
-        await Expect(_page).ToHaveURLAsync(new Regex("step=traveller-details"));
+        await _travellerDetails.ExpectOpenAsync();
     }
 
     [When(@"I answer ""(.*)"" to whether all travellers are New Zealand residents")]
     public async Task WhenIAnswerToWhetherAllTravellersAreNewZealandResidents(string answer)
     {
-        await _travellerDetails.AnswerEligibilityQuestionAsync("CitizenOrLivingInNZ", answer);
+        await _travellerDetails.AnswerResidencyQuestionAsync(answer);
     }
 
     [Then(@"I should see the eligibility message ""(.*)""")]
@@ -191,12 +186,12 @@ public class InsuranceBookingValidationSteps
     public async Task ThenTheFormShouldOnlyAskForFirstNameLastNameAndDateOfBirth(string heading)
     {
         await Expect(_travellerDetails.TravellerHeading(heading)).ToBeVisibleAsync();
-        foreach (var field in new[] { "firstName", "lastName", "dob" })
+        foreach (var field in new[] { TravellerFieldName.FirstName, TravellerFieldName.LastName, TravellerFieldName.DateOfBirth })
         {
             await Expect(_travellerDetails.TravellerField(_quote.AddedTravellerIndex, field)).ToBeVisibleAsync();
         }
 
-        foreach (var field in new[] { "title", "mobilePhone", "emailAddress" })
+        foreach (var field in new[] { TravellerFieldName.Title, TravellerFieldName.MobilePhone, TravellerFieldName.EmailAddress })
         {
             await Expect(_travellerDetails.TravellerField(_quote.AddedTravellerIndex, field)).ToHaveCountAsync(0);
         }

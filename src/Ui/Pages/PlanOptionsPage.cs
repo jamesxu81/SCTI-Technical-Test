@@ -9,7 +9,9 @@ public class PlanOptionsPage : BasePage
 {
     public const string OneReturnJourneyPlan = "International Comprehensive Single Trip";
 
-    private const string QuoteSelectApi = "/api/Quotes/select";
+    public const string MedicalOnlyPlan = "International Medical Only";
+
+    internal static readonly Regex Url = new("step=plan-options");
 
     public PlanOptionsPage(IPage page) : base(page)
     {
@@ -40,9 +42,11 @@ public class PlanOptionsPage : BasePage
 
     public async Task WaitForLoadAsync()
     {
-        await Page.WaitForURLAsync(new Regex("step=plan-options"));
+        await Page.WaitForURLAsync(Url);
         await SelectPlanButton.WaitForAsync();
     }
+
+    public Task ExpectOpenAsync() => Expect(Page).ToHaveURLAsync(Url);
 
     public async Task SelectPlanAsync()
     {
@@ -75,8 +79,8 @@ public class PlanOptionsPage : BasePage
 
     public async Task ClickNextToTravellerDetailsAsync()
     {
-        await RunAndWaitForApiResponseAsync(() => NextToTravellerDetailsButton.ClickAsync(), "PUT", QuoteSelectApi);
-        await Page.WaitForURLAsync(new Regex("step=traveller-details"));
+        await RunAndWaitForApiResponseAsync(() => NextToTravellerDetailsButton.ClickAsync(), "PUT", QuoteApi.Select);
+        await Page.WaitForURLAsync(TravellerDetailsPage.Url);
     }
 
     private async Task ChooseQuoteOptionAsync(string radioGroupName, string label, ILocator amount, bool changesPremium)

@@ -2,7 +2,6 @@ using System.Globalization;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using FluentAssertions;
-using Microsoft.Playwright;
 using Reqnroll;
 using TechnicalTest.Tests.Support;
 using TechnicalTest.Ui.Helpers;
@@ -15,12 +14,9 @@ namespace TechnicalTest.Tests.StepDefinitions;
 [Binding]
 public class InsuranceBookingSteps
 {
-    private const string MedicalOnlyPlan = "International Medical Only";
-
     private readonly QuoteFormPage _quoteForm;
     private readonly PlanOptionsPage _planOptions;
     private readonly TravellerDetailsPage _travellerDetails;
-    private readonly IPage _page;
     private readonly NetworkRecorder _network;
     private readonly QuoteState _quote;
 
@@ -28,14 +24,12 @@ public class InsuranceBookingSteps
         QuoteFormPage quoteForm,
         PlanOptionsPage planOptions,
         TravellerDetailsPage travellerDetails,
-        IPage page,
         NetworkRecorder network,
         QuoteState quote)
     {
         _quoteForm = quoteForm;
         _planOptions = planOptions;
         _travellerDetails = travellerDetails;
-        _page = page;
         _network = network;
         _quote = quote;
     }
@@ -89,9 +83,9 @@ public class InsuranceBookingSteps
     public async Task ThenIShouldSeePlanOptionsAvailable()
     {
         await _planOptions.WaitForLoadAsync();
-        await Expect(_page).ToHaveURLAsync(new Regex("step=plan-options"));
+        await _planOptions.ExpectOpenAsync();
         await Expect(_planOptions.PlanName(PlanOptionsPage.OneReturnJourneyPlan)).ToBeVisibleAsync();
-        await Expect(_planOptions.PlanName(MedicalOnlyPlan)).ToBeVisibleAsync();
+        await Expect(_planOptions.PlanName(PlanOptionsPage.MedicalOnlyPlan)).ToBeVisibleAsync();
         await Expect(_planOptions.SelectPlanButton).ToBeVisibleAsync();
 
         _quote.BasePrice = await _planOptions.GetPlanPriceAsync();
@@ -173,10 +167,10 @@ public class InsuranceBookingSteps
     [Then(@"I should see traveller eligibility section")]
     public async Task ThenIShouldSeeTravellerEligibilitySection()
     {
-        await Expect(_page).ToHaveURLAsync(new Regex("step=traveller-details"));
-        foreach (var question in new[] { "CitizenOrLivingInNZ", "JourneyStarted NZ", "Fraud NZ" })
+        await _travellerDetails.ExpectOpenAsync();
+        foreach (var question in _travellerDetails.EligibilityQuestions)
         {
-            await Expect(_travellerDetails.EligibilityQuestion(question)).ToBeVisibleAsync();
+            await Expect(question).ToBeVisibleAsync();
         }
     }
 
@@ -209,7 +203,7 @@ public class InsuranceBookingSteps
     [Then(@"I should see all travellers added successfully")]
     public async Task ThenIShouldSeeAllTravellersAddedSuccessfully()
     {
-        await Expect(_page).ToHaveURLAsync(new Regex("step=traveller-details"));
+        await _travellerDetails.ExpectOpenAsync();
         await Expect(_travellerDetails.TravellerForms).ToHaveCountAsync(_quote.Travellers.Count);
         foreach (var heading in ExpectedTravellerHeadings(_quote.Travellers))
         {
@@ -218,16 +212,18 @@ public class InsuranceBookingSteps
 
         foreach (var traveller in _quote.FilledTravellers)
         {
-            await Expect(_travellerDetails.TravellerField(traveller.Index, "firstName")).ToHaveValueAsync(traveller.FirstName);
-            await Expect(_travellerDetails.TravellerField(traveller.Index, "lastName")).ToHaveValueAsync(traveller.LastName);
-            await Expect(_travellerDetails.TravellerField(traveller.Index, "dob"))
+            await Expect(_travellerDetails.TravellerField(traveller.Index, TravellerFieldName.FirstName))
+                .ToHaveValueAsync(traveller.FirstName);
+            await Expect(_travellerDetails.TravellerField(traveller.Index, TravellerFieldName.LastName))
+                .ToHaveValueAsync(traveller.LastName);
+            await Expect(_travellerDetails.TravellerField(traveller.Index, TravellerFieldName.DateOfBirth))
                 .ToHaveValueAsync(UiFormat.Date(traveller.DateOfBirth));
         }
 
-        await Expect(_travellerDetails.TravellerField(0, "emailAddress")).ToHaveValueAsync(_quote.PolicyholderEmail);
-        await Expect(_travellerDetails.TravellerField(0, "mobilePhone")).ToHaveValueAsync(_quote.PolicyholderMobile);
-        await Expect(_travellerDetails.TravellerField(0, "city")).Not.ToBeEmptyAsync();
-        await Expect(_travellerDetails.TravellerField(0, "postcode")).Not.ToBeEmptyAsync();
+        await Expect(_travellerDetails.TravellerField(0, TravellerFieldName.EmailAddress)).ToHaveValueAsync(_quote.PolicyholderEmail);
+        await Expect(_travellerDetails.TravellerField(0, TravellerFieldName.MobilePhone)).ToHaveValueAsync(_quote.PolicyholderMobile);
+        await Expect(_travellerDetails.TravellerField(0, TravellerFieldName.City)).Not.ToBeEmptyAsync();
+        await Expect(_travellerDetails.TravellerField(0, TravellerFieldName.Postcode)).Not.ToBeEmptyAsync();
         await Expect(_travellerDetails.Message("This field is required")).ToHaveCountAsync(0);
         await Expect(_travellerDetails.Message("Entered age and date of birth do not match.")).ToHaveCountAsync(0);
         await Expect(_travellerDetails.TotalPremium).ToHaveTextAsync(UiFormat.Money(_quote.CustomisedPrice));

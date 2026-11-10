@@ -2,6 +2,7 @@ using System.Globalization;
 using Microsoft.Playwright;
 using TechnicalTest.Ui.Helpers;
 using TechnicalTest.Ui.Models;
+using static Microsoft.Playwright.Assertions;
 
 namespace TechnicalTest.Ui.Pages;
 
@@ -36,6 +37,8 @@ public class QuoteFormPage : BasePage
         await GotoBaseUrlAsync();
         await GetAQuoteButton.WaitForAsync();
     }
+
+    public Task ExpectOpenAsync() => Expect(Page).ToHaveURLAsync(UiSettings.BaseUrl);
 
     public Task SelectJourneyAsync(string journeyType) => JourneyTab(journeyType).ClickAsync();
 
